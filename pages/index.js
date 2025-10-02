@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, Home, CreditCard, Target, Settings, User, Plus, TrendingUp, TrendingDown, Wallet, Calendar, Trash2, Download, Upload, Search, Sun, Moon, BarChart3, PieChart, AlertCircle, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Menu, Home, CreditCard, Target, Settings, User, Plus, TrendingUp, TrendingDown, Wallet, Calendar, Trash2, Download, Upload, Search, Sun, Moon, BarChart3, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const BudgetApp = () => {
@@ -10,8 +10,7 @@ const BudgetApp = () => {
   
   const [config, setConfig] = useState({
     devise: '€',
-    langue: 'fr',
-    theme: darkMode ? 'dark' : 'light'
+    langue: 'fr'
   });
   
   const [profil, setProfil] = useState({
@@ -20,8 +19,8 @@ const BudgetApp = () => {
   });
   
   const [comptes, setComptes] = useState([
-    { id: 1, nom: 'Compte courant', type: 'courant', soldeInitial: 2500, soldeActuel: 2500, couleur: '#3b82f6' },
-    { id: 2, nom: 'Compte épargne', type: 'epargne', soldeInitial: 5000, soldeActuel: 5000, couleur: '#10b981' }
+    { id: 1, nom: 'Compte courant', type: 'courant', soldeInitial: 2500, couleur: '#3b82f6' },
+    { id: 2, nom: 'Compte épargne', type: 'epargne', soldeInitial: 5000, couleur: '#10b981' }
   ]);
   
   const [transactions, setTransactions] = useState([
@@ -98,14 +97,13 @@ const BudgetApp = () => {
   const [filtreCategorie, setFiltreCategorie] = useState('');
   const [filtreCompte, setFiltreCompte] = useState('');
   
-  useEffect(() => {
-    const nouveauxComptes = comptes.map(compte => {
+  const comptesAvecSoldes = useMemo(() => {
+    return comptes.map(compte => {
       const transactionsCompte = transactions.filter(t => t.compteId === compte.id);
-      const solde = compte.soldeInitial + transactionsCompte.reduce((sum, t) => sum + t.montant, 0);
-      return { ...compte, soldeActuel: solde };
+      const soldeActuel = compte.soldeInitial + transactionsCompte.reduce((sum, t) => sum + t.montant, 0);
+      return { ...compte, soldeActuel };
     });
-    setComptes(nouveauxComptes);
-  }, [transactions]);
+  }, [comptes, transactions]);
   
   useEffect(() => {
     document.body.className = darkMode ? 'dark' : '';
@@ -113,7 +111,7 @@ const BudgetApp = () => {
   
   const ajouterCompte = () => {
     if (!newCompte.nom) return showToast('Veuillez entrer un nom', 'error');
-    const nouveauCompte = { id: Date.now(), ...newCompte, soldeActuel: newCompte.soldeInitial };
+    const nouveauCompte = { id: Date.now(), ...newCompte };
     setComptes([...comptes, nouveauCompte]);
     setNewCompte({ nom: '', type: 'courant', soldeInitial: 0, couleur: '#3b82f6' });
     setShowAddCompte(false);
@@ -188,6 +186,11 @@ const BudgetApp = () => {
     showToast('Objectif supprimé', 'success');
   };
   
+  const supprimerBudget = (id) => {
+    setBudgets(budgets.filter(b => b.id !== id));
+    showToast('Budget supprimé', 'success');
+  };
+  
   const exporterDonnees = () => {
     const data = { comptes, transactions, objectifs, transactionsRecurrentes, budgets, tags, profil, config };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -229,12 +232,12 @@ const BudgetApp = () => {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
   
-  const stats = {
+  const stats = useMemo(() => ({
     totalRevenus: transactions.filter(t => t.montant > 0).reduce((sum, t) => sum + t.montant, 0),
     totalDepenses: Math.abs(transactions.filter(t => t.montant < 0).reduce((sum, t) => sum + t.montant, 0)),
-    soldeTotal: comptes.reduce((sum, c) => sum + c.soldeActuel, 0),
+    soldeTotal: comptesAvecSoldes.reduce((sum, c) => sum + c.soldeActuel, 0),
     nbTransactions: transactions.length
-  };
+  }), [transactions, comptesAvecSoldes]);
   
   const transactionsFiltrees = transactions.filter(t => {
     if (filtreType !== 'TOUS' && t.type !== filtreType) return false;
@@ -275,7 +278,6 @@ const BudgetApp = () => {
   };
   
   const getBudgetAlerts = () => {
-    const moisActuel = new Date().toISOString().slice(0, 7);
     return budgets.map(budget => {
       const depensesCat = transactions
         .filter(t => t.montant < 0 && t.categorie === budget.categorie && t.date.startsWith(budget.mois))
@@ -294,7 +296,7 @@ const BudgetApp = () => {
   
   const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4'];
   
-  const bgClass = darkMode ? 'bg-gray-900' : 'bg-gray-100';
+  const bgClass = darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100';
   const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
   const textClass = darkMode ? 'text-gray-200' : 'text-gray-900';
   const mutedClass = darkMode ? 'text-gray-400' : 'text-gray-600';
@@ -304,47 +306,55 @@ const BudgetApp = () => {
     <div className="flex-1 p-8 overflow-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className={`text-3xl font-bold ${textClass}`}>Tableau de bord</h2>
-        <button onClick={() => setShowStats(true)} className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 flex items-center gap-2">
-          <BarChart3 className="w-4 h-4" /> Statistiques avancées
+        <button onClick={() => setShowStats(true)} className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-xl hover:from-purple-600 hover:to-purple-700 flex items-center gap-2 shadow-lg transition-all">
+          <BarChart3 className="w-4 h-4" /> Statistiques
         </button>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className={`${cardClass} p-6 rounded-lg shadow transition-all hover:scale-105`}>
+        <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 hover:shadow-xl border ${borderClass}`}>
           <div className="flex items-center justify-between mb-2">
             <span className={mutedClass}>Solde total</span>
-            <Wallet className="w-5 h-5 text-blue-500" />
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+              <Wallet className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
           </div>
           <div className="text-2xl font-bold">{stats.soldeTotal.toFixed(2)} {config.devise}</div>
         </div>
         
-        <div className={`${cardClass} p-6 rounded-lg shadow transition-all hover:scale-105`}>
+        <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 hover:shadow-xl border ${borderClass}`}>
           <div className="flex items-center justify-between mb-2">
             <span className={mutedClass}>Revenus</span>
-            <TrendingUp className="w-5 h-5 text-green-500" />
+            <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
           </div>
           <div className="text-2xl font-bold text-green-600">{stats.totalRevenus.toFixed(2)} {config.devise}</div>
         </div>
         
-        <div className={`${cardClass} p-6 rounded-lg shadow transition-all hover:scale-105`}>
+        <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 hover:shadow-xl border ${borderClass}`}>
           <div className="flex items-center justify-between mb-2">
             <span className={mutedClass}>Dépenses</span>
-            <TrendingDown className="w-5 h-5 text-red-500" />
+            <div className="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+              <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
+            </div>
           </div>
           <div className="text-2xl font-bold text-red-600">{stats.totalDepenses.toFixed(2)} {config.devise}</div>
         </div>
         
-        <div className={`${cardClass} p-6 rounded-lg shadow transition-all hover:scale-105`}>
+        <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 hover:shadow-xl border ${borderClass}`}>
           <div className="flex items-center justify-between mb-2">
             <span className={mutedClass}>Transactions</span>
-            <CreditCard className="w-5 h-5 text-purple-500" />
+            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
+              <CreditCard className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
           </div>
           <div className="text-2xl font-bold">{stats.nbTransactions}</div>
         </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className={`${cardClass} p-6 rounded-lg shadow`}>
+        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
           <h3 className="text-xl font-bold mb-4">Dépenses par catégorie</h3>
           <ResponsiveContainer width="100%" height={250}>
             <RePieChart>
@@ -358,7 +368,7 @@ const BudgetApp = () => {
           </ResponsiveContainer>
         </div>
         
-        <div className={`${cardClass} p-6 rounded-lg shadow`}>
+        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
           <h3 className="text-xl font-bold mb-4">Évolution du solde</h3>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={getEvolutionSolde()}>
@@ -373,41 +383,76 @@ const BudgetApp = () => {
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className={`${cardClass} p-6 rounded-lg shadow`}>
-          <h3 className="text-xl font-bold mb-4">Alertes budgets</h3>
-          <div className="space-y-3">
-            {getBudgetAlerts().map(budget => (
-              <div key={budget.id} className={`p-3 rounded ${budget.alerte ? 'bg-red-100 dark:bg-red-900' : 'bg-green-100 dark:bg-green-900'}`}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium">{budget.categorie}</span>
-                  {budget.alerte ? <AlertCircle className="w-5 h-5 text-red-600" /> : <CheckCircle className="w-5 h-5 text-green-600" />}
-                </div>
-                <div className="text-sm">{budget.depenses.toFixed(2)} / {budget.montantMax} {config.devise} ({budget.pourcentage.toFixed(0)}%)</div>
-                <div className="w-full bg-gray-300 dark:bg-gray-600 rounded-full h-2 mt-2">
-                  <div className={`h-2 rounded-full ${budget.alerte ? 'bg-red-600' : 'bg-green-600'}`} style={{ width: `${Math.min(budget.pourcentage, 100)}%` }}></div>
-                </div>
-              </div>
-            ))}
-            <button onClick={() => setShowAddBudget(true)} className="w-full bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 flex items-center justify-center gap-2">
-              <Plus className="w-4 h-4" /> Ajouter un budget
+        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold">Budgets mensuels</h3>
+            <button onClick={() => setShowAddBudget(true)} className="text-orange-600 hover:text-orange-700">
+              <Plus className="w-5 h-5" />
             </button>
+          </div>
+          <div className="space-y-4">
+            {getBudgetAlerts().map(budget => {
+              const catInfo = categories.depenses.find(c => c.nom === budget.categorie);
+              return (
+                <div key={budget.id} className={`p-4 rounded-xl border-2 ${budget.alerte ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' : 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'} transition-all`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{catInfo?.icon}</span>
+                      <span className="font-semibold">{budget.categorie}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {budget.alerte ? (
+                        <AlertCircle className="w-5 h-5 text-red-600" />
+                      ) : (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      )}
+                      <button onClick={() => supprimerBudget(budget.id)} className="text-gray-400 hover:text-red-600">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      {budget.depenses.toFixed(2)} / {budget.montantMax} {config.devise}
+                    </span>
+                    <span className={`text-sm font-bold ${budget.alerte ? 'text-red-600' : 'text-green-600'}`}>
+                      {budget.pourcentage.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                    <div 
+                      className={`h-3 rounded-full transition-all duration-500 ${budget.alerte ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-green-500 to-green-600'}`} 
+                      style={{ width: `${Math.min(budget.pourcentage, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              );
+            })}
+            {getBudgetAlerts().length === 0 && (
+              <div className="text-center py-8">
+                <p className={mutedClass}>Aucun budget défini</p>
+                <button onClick={() => setShowAddBudget(true)} className="mt-2 text-orange-600 hover:text-orange-700 text-sm">
+                  Créer votre premier budget
+                </button>
+              </div>
+            )}
           </div>
         </div>
         
-        <div className={`${cardClass} p-6 rounded-lg shadow`}>
+        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
           <h3 className="text-xl font-bold mb-4">Comptes</h3>
           <div className="space-y-3">
-            {comptes.map(compte => (
-              <div key={compte.id} className={`flex items-center justify-between p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded`}>
+            {comptesAvecSoldes.map(compte => (
+              <div key={compte.id} className={`flex items-center justify-between p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gradient-to-r from-gray-50 to-gray-100'} border ${borderClass} hover:shadow-md transition-all`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: compte.couleur }}></div>
+                  <div className="w-4 h-4 rounded-full shadow-lg" style={{ backgroundColor: compte.couleur }}></div>
                   <span className="font-medium">{compte.nom}</span>
                 </div>
-                <span className="font-bold">{compte.soldeActuel.toFixed(2)} {config.devise}</span>
+                <span className="font-bold text-lg">{compte.soldeActuel.toFixed(2)} {config.devise}</span>
               </div>
             ))}
           </div>
-          <button onClick={() => setShowAddCompte(true)} className="mt-4 w-full bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 flex items-center justify-center gap-2">
+          <button onClick={() => setShowAddCompte(true)} className="mt-4 w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 flex items-center justify-center gap-2 shadow-lg transition-all">
             <Plus className="w-4 h-4" /> Ajouter un compte
           </button>
         </div>
@@ -419,30 +464,30 @@ const BudgetApp = () => {
     <div className="flex-1 p-8 overflow-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className={`text-3xl font-bold ${textClass}`}>Transactions</h2>
-        <button onClick={() => setShowAddTransaction(true)} className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 flex items-center gap-2">
+        <button onClick={() => setShowAddTransaction(true)} className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-xl hover:from-orange-600 hover:to-orange-700 flex items-center gap-2 shadow-lg transition-all">
           <Plus className="w-4 h-4" /> Nouvelle transaction
         </button>
       </div>
       
-      <div className={`${cardClass} p-4 rounded-lg shadow mb-6`}>
+      <div className={`${cardClass} p-4 rounded-2xl shadow-lg mb-6 border ${borderClass}`}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-            <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Rechercher..." className={`w-full pl-10 px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`} />
+            <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Rechercher..." className={`w-full pl-10 px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
           </div>
-          <select value={filtreType} onChange={(e) => setFiltreType(e.target.value)} className={`px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}>
+          <select value={filtreType} onChange={(e) => setFiltreType(e.target.value)} className={`px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
             <option value="TOUS">Tous les types</option>
             <option value="REVENUS">Revenus</option>
             <option value="DÉPENSES">Dépenses</option>
             <option value="PLACEMENTS">Placements</option>
           </select>
-          <select value={filtreCategorie} onChange={(e) => setFiltreCategorie(e.target.value)} className={`px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}>
+          <select value={filtreCategorie} onChange={(e) => setFiltreCategorie(e.target.value)} className={`px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
             <option value="">Toutes les catégories</option>
             {[...categories.depenses, ...categories.revenus, ...categories.placements].map(cat => (
               <option key={cat.id + cat.nom} value={cat.nom}>{cat.nom}</option>
             ))}
           </select>
-          <select value={filtreCompte} onChange={(e) => setFiltreCompte(e.target.value)} className={`px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'}`}>
+          <select value={filtreCompte} onChange={(e) => setFiltreCompte(e.target.value)} className={`px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
             <option value="">Tous les comptes</option>
             {comptes.map(c => (
               <option key={c.id} value={c.id}>{c.nom}</option>
@@ -451,7 +496,7 @@ const BudgetApp = () => {
         </div>
       </div>
       
-      <div className={`${cardClass} rounded-lg shadow overflow-hidden`}>
+      <div className={`${cardClass} rounded-2xl shadow-lg overflow-hidden border ${borderClass}`}>
         <table className="w-full">
           <thead className={darkMode ? 'bg-gray-700' : 'bg-gray-50'}>
             <tr>
@@ -469,12 +514,12 @@ const BudgetApp = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{t.date}</td>
                 <td className="px-6 py-4 text-sm font-medium">{t.libelle}</td>
                 <td className="px-6 py-4 text-sm">{t.categorie}</td>
-                <td className="px-6 py-4 text-sm">{comptes.find(c => c.id === t.compteId)?.nom}</td>
+                <td className="px-6 py-4 text-sm">{comptesAvecSoldes.find(c => c.id === t.compteId)?.nom}</td>
                 <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold text-right ${t.montant > 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {t.montant > 0 ? '+' : ''}{t.montant.toFixed(2)} {config.devise}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                  <button onClick={() => supprimerTransaction(t.id)} className="text-red-600 hover:text-red-800">
+                  <button onClick={() => supprimerTransaction(t.id)} className="text-red-600 hover:text-red-800 transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </td>
@@ -490,7 +535,7 @@ const BudgetApp = () => {
     <div className="flex-1 p-8 overflow-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className={`text-3xl font-bold ${textClass}`}>Objectifs d'épargne</h2>
-        <button onClick={() => setShowAddObjectif(true)} className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2">
+        <button onClick={() => setShowAddObjectif(true)} className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl hover:from-blue-600 hover:to-blue-700 flex items-center gap-2 shadow-lg transition-all">
           <Plus className="w-4 h-4" /> Nouvel objectif
         </button>
       </div>
@@ -499,31 +544,31 @@ const BudgetApp = () => {
         {objectifs.map(obj => {
           const progression = (obj.montantActuel / obj.montantCible) * 100;
           return (
-            <div key={obj.id} className={`${cardClass} p-6 rounded-lg shadow transition-all hover:scale-105`}>
+            <div key={obj.id} className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 border ${borderClass}`}>
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-bold">{obj.nom}</h3>
                   <p className={`text-sm ${mutedClass}`}>{obj.categorie}</p>
                 </div>
-                <button onClick={() => supprimerObjectif(obj.id)} className="text-red-600 hover:text-red-800">
+                <button onClick={() => supprimerObjectif(obj.id)} className="text-red-600 hover:text-red-800 transition-colors">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
               
               <div className="mb-4">
-                <div className="flex justify-between text-sm mb-1">
-                  <span>{obj.montantActuel.toFixed(2)} {config.devise}</span>
-                  <span>{obj.montantCible.toFixed(2)} {config.devise}</span>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="font-semibold">{obj.montantActuel.toFixed(2)} {config.devise}</span>
+                  <span className={mutedClass}>{obj.montantCible.toFixed(2)} {config.devise}</span>
                 </div>
-                <div className={`w-full ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2`}>
-                  <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${Math.min(progression, 100)}%` }}></div>
+                <div className={`w-full ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-3 overflow-hidden`}>
+                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500" style={{ width: `${Math.min(progression, 100)}%` }}></div>
                 </div>
-                <div className={`text-center text-sm ${mutedClass} mt-1`}>{progression.toFixed(0)}%</div>
+                <div className={`text-center text-sm font-semibold ${mutedClass} mt-2`}>{progression.toFixed(0)}% atteint</div>
               </div>
               
               <div className={`flex items-center text-sm ${mutedClass}`}>
                 <Calendar className="w-4 h-4 mr-1" />
-                Date cible: {obj.dateObjectif || 'Non définie'}
+                {obj.dateObjectif || 'Non définie'}
               </div>
             </div>
           );
@@ -537,24 +582,24 @@ const BudgetApp = () => {
       <h2 className={`text-3xl font-bold mb-6 ${textClass}`}>Configuration</h2>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className={`${cardClass} p-6 rounded-lg shadow`}>
+        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
           <h3 className="text-xl font-bold mb-4">Import / Export</h3>
           <div className="space-y-3">
-            <button onClick={exporterDonnees} className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center justify-center gap-2">
-              <Download className="w-4 h-4" /> Exporter les données (JSON)
+            <button onClick={exporterDonnees} className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-xl hover:from-blue-600 hover:to-blue-700 flex items-center justify-center gap-2 shadow-lg transition-all">
+              <Download className="w-4 h-4" /> Exporter les données
             </button>
-            <label className="w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 flex items-center justify-center gap-2 cursor-pointer">
-              <Upload className="w-4 h-4" /> Importer les données (JSON)
+            <label className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-xl hover:from-green-600 hover:to-green-700 flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-all">
+              <Upload className="w-4 h-4" /> Importer les données
               <input type="file" accept=".json" onChange={importerDonnees} className="hidden" />
             </label>
           </div>
         </div>
         
-        <div className={`${cardClass} p-6 rounded-lg shadow`}>
+        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
           <h3 className="text-xl font-bold mb-4">Transactions récurrentes</h3>
           <div className="space-y-2 mb-4">
             {transactionsRecurrentes.map(tr => (
-              <div key={tr.id} className={`flex items-center justify-between p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded`}>
+              <div key={tr.id} className={`flex items-center justify-between p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl border ${borderClass}`}>
                 <div>
                   <div className="font-medium">{tr.libelle}</div>
                   <div className={`text-xs ${mutedClass}`}>{tr.categorie} • Jour {tr.jour}</div>
@@ -565,31 +610,31 @@ const BudgetApp = () => {
               </div>
             ))}
           </div>
-          <button onClick={() => setShowAddRecurrente(true)} className="w-full bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 flex items-center justify-center gap-2">
+          <button onClick={() => setShowAddRecurrente(true)} className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-3 rounded-xl hover:from-purple-600 hover:to-purple-700 flex items-center justify-center gap-2 shadow-lg transition-all">
             <Plus className="w-4 h-4" /> Ajouter
           </button>
         </div>
         
-        <div className={`${cardClass} p-6 rounded-lg shadow`}>
+        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
           <h3 className="text-xl font-bold mb-4">Tags</h3>
           <div className="flex flex-wrap gap-2 mb-4">
             {tags.map((tag, index) => (
-              <span key={index} className="bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-3 py-1 rounded-full text-sm">
+              <span key={index} className="bg-gradient-to-r from-indigo-100 to-indigo-200 dark:from-indigo-900 dark:to-indigo-800 text-indigo-800 dark:text-indigo-200 px-3 py-1 rounded-full text-sm font-medium">
                 {tag}
               </span>
             ))}
           </div>
-          <button onClick={() => setShowAddTag(true)} className="w-full bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 flex items-center justify-center gap-2">
+          <button onClick={() => setShowAddTag(true)} className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-4 py-3 rounded-xl hover:from-indigo-600 hover:to-indigo-700 flex items-center justify-center gap-2 shadow-lg transition-all">
             <Plus className="w-4 h-4" /> Ajouter un tag
           </button>
         </div>
         
-        <div className={`${cardClass} p-6 rounded-lg shadow`}>
+        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
           <h3 className="text-xl font-bold mb-4">Paramètres généraux</h3>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Devise</label>
-              <select value={config.devise} onChange={(e) => setConfig({...config, devise: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
+              <select value={config.devise} onChange={(e) => setConfig({...config, devise: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
                 <option value="€">Euro (€)</option>
                 <option value="$">Dollar ($)</option>
                 <option value="£">Livre (£)</option>
@@ -606,9 +651,9 @@ const BudgetApp = () => {
     <div className="flex-1 p-8 overflow-auto">
       <h2 className={`text-3xl font-bold mb-6 ${textClass}`}>Mon profil</h2>
       
-      <div className={`${cardClass} p-6 rounded-lg shadow max-w-2xl`}>
+      <div className={`${cardClass} p-6 rounded-2xl shadow-lg max-w-2xl border ${borderClass}`}>
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+          <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
             {profil.nom.charAt(0)}
           </div>
           <div>
@@ -620,13 +665,13 @@ const BudgetApp = () => {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">Nom</label>
-            <input type="text" value={profil.nom} onChange={(e) => setProfil({...profil, nom: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+            <input type="text" value={profil.nom} onChange={(e) => setProfil({...profil, nom: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
-            <input type="email" value={profil.email} onChange={(e) => setProfil({...profil, email: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+            <input type="email" value={profil.email} onChange={(e) => setProfil({...profil, email: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
           </div>
-          <button onClick={() => showToast('Profil mis à jour', 'success')} className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600">
+          <button onClick={() => showToast('Profil mis à jour', 'success')} className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">
             Enregistrer les modifications
           </button>
         </div>
@@ -637,46 +682,46 @@ const BudgetApp = () => {
   return (
     <div className={`flex h-screen ${bgClass}`}>
       {toast.show && (
-        <div className={`fixed top-4 right-4 ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in`}>
+        <div className={`fixed top-4 right-4 ${toast.type === 'success' ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-red-500 to-red-600'} text-white px-6 py-3 rounded-xl shadow-2xl z-50 animate-fade-in`}>
           {toast.message}
         </div>
       )}
       
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-orange-500 to-orange-600 text-white transition-all duration-300 flex flex-col`}>
+      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-orange-500 to-orange-600 text-white transition-all duration-300 flex flex-col shadow-2xl`}>
         <div className="p-4 flex items-center justify-between">
           {sidebarOpen && <h1 className="text-xl font-bold">Budget App</h1>}
-          <button type="button" onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-orange-700 rounded">
+          <button type="button" onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-orange-700 rounded-xl transition-colors">
             <Menu className="w-6 h-6" />
           </button>
         </div>
 
         <nav className="flex-1 mt-8">
-          <button type="button" onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-700 transition-colors ${currentView === 'dashboard' ? 'bg-orange-700' : ''}`}>
+          <button type="button" onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-700 transition-colors rounded-xl mx-2 ${currentView === 'dashboard' ? 'bg-orange-700 shadow-lg' : ''}`}>
             <Home className="w-5 h-5" />
             {sidebarOpen && <span>Tableau de bord</span>}
           </button>
-          <button type="button" onClick={() => setCurrentView('transactions')} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-700 transition-colors ${currentView === 'transactions' ? 'bg-orange-700' : ''}`}>
+          <button type="button" onClick={() => setCurrentView('transactions')} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-700 transition-colors rounded-xl mx-2 ${currentView === 'transactions' ? 'bg-orange-700 shadow-lg' : ''}`}>
             <CreditCard className="w-5 h-5" />
             {sidebarOpen && <span>Transactions</span>}
           </button>
-          <button type="button" onClick={() => setCurrentView('objectifs')} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-700 transition-colors ${currentView === 'objectifs' ? 'bg-orange-700' : ''}`}>
+          <button type="button" onClick={() => setCurrentView('objectifs')} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-700 transition-colors rounded-xl mx-2 ${currentView === 'objectifs' ? 'bg-orange-700 shadow-lg' : ''}`}>
             <Target className="w-5 h-5" />
             {sidebarOpen && <span>Objectifs</span>}
           </button>
-          <button type="button" onClick={() => setCurrentView('config')} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-700 transition-colors ${currentView === 'config' ? 'bg-orange-700' : ''}`}>
+          <button type="button" onClick={() => setCurrentView('config')} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-700 transition-colors rounded-xl mx-2 ${currentView === 'config' ? 'bg-orange-700 shadow-lg' : ''}`}>
             <Settings className="w-5 h-5" />
             {sidebarOpen && <span>Configuration</span>}
           </button>
-          <button type="button" onClick={() => setCurrentView('profil')} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-700 transition-colors ${currentView === 'profil' ? 'bg-orange-700' : ''}`}>
+          <button type="button" onClick={() => setCurrentView('profil')} className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-orange-700 transition-colors rounded-xl mx-2 ${currentView === 'profil' ? 'bg-orange-700 shadow-lg' : ''}`}>
             <User className="w-5 h-5" />
             {sidebarOpen && <span>Profil</span>}
           </button>
         </nav>
 
         <div className="p-4">
-          <button onClick={() => setDarkMode(!darkMode)} className="w-full flex items-center justify-center gap-2 p-2 hover:bg-orange-700 rounded transition-colors">
+          <button onClick={() => setDarkMode(!darkMode)} className="w-full flex items-center justify-center gap-2 p-2 hover:bg-orange-700 rounded-xl transition-colors">
             {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            {sidebarOpen && <span>Thème {darkMode ? 'clair' : 'sombre'}</span>}
+            {sidebarOpen && <span>{darkMode ? 'Mode clair' : 'Mode sombre'}</span>}
           </button>
         </div>
 
@@ -696,57 +741,67 @@ const BudgetApp = () => {
       {currentView === 'profil' && <ProfilView />}
 
       {showAddCompte && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
-          <div className={`${cardClass} rounded-lg p-6 w-full max-w-md`}>
-            <h3 className="text-xl font-bold mb-4">Nouveau compte</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Nouveau compte</h3>
+              <button onClick={() => setShowAddCompte(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Nom du compte</label>
-                <input type="text" value={newCompte.nom} onChange={(e) => setNewCompte({ ...newCompte, nom: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} placeholder="Ex: Compte épargne" />
+                <input type="text" value={newCompte.nom} onChange={(e) => setNewCompte({ ...newCompte, nom: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} placeholder="Ex: Compte épargne" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Type</label>
-                <select value={newCompte.type} onChange={(e) => setNewCompte({ ...newCompte, type: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
+                <select value={newCompte.type} onChange={(e) => setNewCompte({ ...newCompte, type: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
                   {typesComptes.map(type => (<option key={type.value} value={type.value}>{type.icon} {type.label}</option>))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Solde initial ({config.devise})</label>
-                <input type="number" step="0.01" value={newCompte.soldeInitial} onChange={(e) => setNewCompte({ ...newCompte, soldeInitial: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+                <input type="number" step="0.01" value={newCompte.soldeInitial} onChange={(e) => setNewCompte({ ...newCompte, soldeInitial: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Couleur</label>
-                <input type="color" value={newCompte.couleur} onChange={(e) => setNewCompte({ ...newCompte, couleur: e.target.value })} className={`w-full h-10 px-2 py-1 border ${borderClass} rounded-lg`} />
+                <input type="color" value={newCompte.couleur} onChange={(e) => setNewCompte({ ...newCompte, couleur: e.target.value })} className={`w-full h-12 px-2 py-1 border ${borderClass} rounded-xl cursor-pointer`} />
               </div>
             </div>
             <div className="flex gap-2 mt-6">
-              <button type="button" onClick={ajouterCompte} className="flex-1 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">Créer</button>
-              <button type="button" onClick={() => setShowAddCompte(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">Annuler</button>
+              <button type="button" onClick={ajouterCompte} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">Créer</button>
+              <button type="button" onClick={() => setShowAddCompte(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
             </div>
           </div>
         </div>
       )}
 
       {showAddTransaction && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
-          <div className={`${cardClass} rounded-lg p-6 w-full max-w-md`}>
-            <h3 className="text-xl font-bold mb-4">Nouvelle transaction</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Nouvelle transaction</h3>
+              <button onClick={() => setShowAddTransaction(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Date</label>
-                <input type="date" value={newTransaction.date} onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+                <input type="date" value={newTransaction.date} onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Libellé</label>
-                <input type="text" value={newTransaction.libelle} onChange={(e) => setNewTransaction({ ...newTransaction, libelle: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} placeholder="Ex: Courses" />
+                <input type="text" value={newTransaction.libelle} onChange={(e) => setNewTransaction({ ...newTransaction, libelle: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} placeholder="Ex: Courses" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Montant ({config.devise})</label>
-                <input type="number" step="0.01" value={newTransaction.montant} onChange={(e) => setNewTransaction({ ...newTransaction, montant: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+                <input type="number" step="0.01" value={newTransaction.montant} onChange={(e) => setNewTransaction({ ...newTransaction, montant: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Type</label>
-                <select value={newTransaction.type} onChange={(e) => setNewTransaction({ ...newTransaction, type: e.target.value, categorie: '' })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
+                <select value={newTransaction.type} onChange={(e) => setNewTransaction({ ...newTransaction, type: e.target.value, categorie: '' })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
                   <option value="DÉPENSES">Dépenses</option>
                   <option value="REVENUS">Revenus</option>
                   <option value="PLACEMENTS">Placements</option>
@@ -754,7 +809,7 @@ const BudgetApp = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Catégorie</label>
-                <select value={newTransaction.categorie} onChange={(e) => setNewTransaction({ ...newTransaction, categorie: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
+                <select value={newTransaction.categorie} onChange={(e) => setNewTransaction({ ...newTransaction, categorie: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
                   <option value="">Sélectionner...</option>
                   {newTransaction.type === 'DÉPENSES' && categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
                   {newTransaction.type === 'REVENUS' && categories.revenus.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
@@ -763,69 +818,79 @@ const BudgetApp = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Compte</label>
-                <select value={newTransaction.compteId} onChange={(e) => setNewTransaction({ ...newTransaction, compteId: parseInt(e.target.value) })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
+                <select value={newTransaction.compteId} onChange={(e) => setNewTransaction({ ...newTransaction, compteId: parseInt(e.target.value) })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
                   {comptes.map(c => (<option key={c.id} value={c.id}>{c.nom}</option>))}
                 </select>
               </div>
             </div>
             <div className="flex gap-2 mt-6">
-              <button type="button" onClick={ajouterTransaction} className="flex-1 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">Créer</button>
-              <button type="button" onClick={() => setShowAddTransaction(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">Annuler</button>
+              <button type="button" onClick={ajouterTransaction} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">Créer</button>
+              <button type="button" onClick={() => setShowAddTransaction(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
             </div>
           </div>
         </div>
       )}
 
       {showAddObjectif && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
-          <div className={`${cardClass} rounded-lg p-6 w-full max-w-md`}>
-            <h3 className="text-xl font-bold mb-4">Nouvel objectif d'épargne</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Nouvel objectif d'épargne</h3>
+              <button onClick={() => setShowAddObjectif(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Nom de l'objectif</label>
-                <input type="text" value={newObjectif.nom} onChange={(e) => setNewObjectif({ ...newObjectif, nom: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} placeholder="Ex: Voyage en Italie" />
+                <input type="text" value={newObjectif.nom} onChange={(e) => setNewObjectif({ ...newObjectif, nom: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} placeholder="Ex: Voyage en Italie" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Montant cible ({config.devise})</label>
-                <input type="number" value={newObjectif.montantCible} onChange={(e) => setNewObjectif({ ...newObjectif, montantCible: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+                <input type="number" value={newObjectif.montantCible} onChange={(e) => setNewObjectif({ ...newObjectif, montantCible: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Montant actuel ({config.devise})</label>
-                <input type="number" value={newObjectif.montantActuel} onChange={(e) => setNewObjectif({ ...newObjectif, montantActuel: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+                <input type="number" value={newObjectif.montantActuel} onChange={(e) => setNewObjectif({ ...newObjectif, montantActuel: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Date objectif</label>
-                <input type="date" value={newObjectif.dateObjectif} onChange={(e) => setNewObjectif({ ...newObjectif, dateObjectif: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+                <input type="date" value={newObjectif.dateObjectif} onChange={(e) => setNewObjectif({ ...newObjectif, dateObjectif: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Catégorie</label>
-                <input type="text" value={newObjectif.categorie} onChange={(e) => setNewObjectif({ ...newObjectif, categorie: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} placeholder="Ex: Vacances" />
+                <input type="text" value={newObjectif.categorie} onChange={(e) => setNewObjectif({ ...newObjectif, categorie: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} placeholder="Ex: Vacances" />
               </div>
             </div>
             <div className="flex gap-2 mt-6">
-              <button type="button" onClick={ajouterObjectif} className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">Créer</button>
-              <button type="button" onClick={() => setShowAddObjectif(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">Annuler</button>
+              <button type="button" onClick={ajouterObjectif} className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-xl hover:from-blue-600 hover:to-blue-700 shadow-lg transition-all">Créer</button>
+              <button type="button" onClick={() => setShowAddObjectif(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
             </div>
           </div>
         </div>
       )}
 
       {showAddRecurrente && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
-          <div className={`${cardClass} rounded-lg p-6 w-full max-w-md`}>
-            <h3 className="text-xl font-bold mb-4">Nouvelle transaction récurrente</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Nouvelle transaction récurrente</h3>
+              <button onClick={() => setShowAddRecurrente(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Libellé</label>
-                <input type="text" value={newRecurrente.libelle} onChange={(e) => setNewRecurrente({ ...newRecurrente, libelle: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} placeholder="Ex: Abonnement" />
+                <input type="text" value={newRecurrente.libelle} onChange={(e) => setNewRecurrente({ ...newRecurrente, libelle: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} placeholder="Ex: Abonnement" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Montant ({config.devise})</label>
-                <input type="number" step="0.01" value={newRecurrente.montant} onChange={(e) => setNewRecurrente({ ...newRecurrente, montant: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+                <input type="number" step="0.01" value={newRecurrente.montant} onChange={(e) => setNewRecurrente({ ...newRecurrente, montant: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Type</label>
-                <select value={newRecurrente.type} onChange={(e) => setNewRecurrente({ ...newRecurrente, type: e.target.value, categorie: '' })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
+                <select value={newRecurrente.type} onChange={(e) => setNewRecurrente({ ...newRecurrente, type: e.target.value, categorie: '' })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`}>
                   <option value="DÉPENSES">Dépenses</option>
                   <option value="REVENUS">Revenus</option>
                   <option value="PLACEMENTS">Placements</option>
@@ -833,7 +898,7 @@ const BudgetApp = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Catégorie</label>
-                <select value={newRecurrente.categorie} onChange={(e) => setNewRecurrente({ ...newRecurrente, categorie: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
+                <select value={newRecurrente.categorie} onChange={(e) => setNewRecurrente({ ...newRecurrente, categorie: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`}>
                   <option value="">Sélectionner...</option>
                   {newRecurrente.type === 'DÉPENSES' && categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
                   {newRecurrente.type === 'REVENUS' && categories.revenus.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
@@ -842,82 +907,92 @@ const BudgetApp = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Jour du mois (1-31)</label>
-                <input type="number" min="1" max="31" value={newRecurrente.jour} onChange={(e) => setNewRecurrente({ ...newRecurrente, jour: parseInt(e.target.value) || 1 })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+                <input type="number" min="1" max="31" value={newRecurrente.jour} onChange={(e) => setNewRecurrente({ ...newRecurrente, jour: parseInt(e.target.value) || 1 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} />
               </div>
             </div>
             <div className="flex gap-2 mt-6">
-              <button type="button" onClick={ajouterTransactionRecurrente} className="flex-1 bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600">Créer</button>
-              <button type="button" onClick={() => setShowAddRecurrente(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">Annuler</button>
+              <button type="button" onClick={ajouterTransactionRecurrente} className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-3 rounded-xl hover:from-purple-600 hover:to-purple-700 shadow-lg transition-all">Créer</button>
+              <button type="button" onClick={() => setShowAddRecurrente(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
             </div>
           </div>
         </div>
       )}
 
       {showAddTag && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
-          <div className={`${cardClass} rounded-lg p-6 w-full max-w-md`}>
-            <h3 className="text-xl font-bold mb-4">Nouveau tag</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Nouveau tag</h3>
+              <button onClick={() => setShowAddTag(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1">Nom du tag</label>
-              <input type="text" value={newTag} onChange={(e) => setNewTag(e.target.value)} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} placeholder="Ex: personnel" />
+              <input type="text" value={newTag} onChange={(e) => setNewTag(e.target.value)} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-indigo-500 outline-none`} placeholder="Ex: personnel" />
             </div>
             <div className="flex gap-2">
-              <button type="button" onClick={ajouterTag} className="flex-1 bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600">Créer</button>
-              <button type="button" onClick={() => setShowAddTag(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">Annuler</button>
+              <button type="button" onClick={ajouterTag} className="flex-1 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-4 py-3 rounded-xl hover:from-indigo-600 hover:to-indigo-700 shadow-lg transition-all">Créer</button>
+              <button type="button" onClick={() => setShowAddTag(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
             </div>
           </div>
         </div>
       )}
 
       {showAddBudget && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in">
-          <div className={`${cardClass} rounded-lg p-6 w-full max-w-md`}>
-            <h3 className="text-xl font-bold mb-4">Nouveau budget</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Nouveau budget</h3>
+              <button onClick={() => setShowAddBudget(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Catégorie</label>
-                <select value={newBudget.categorie} onChange={(e) => setNewBudget({ ...newBudget, categorie: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
+                <select value={newBudget.categorie} onChange={(e) => setNewBudget({ ...newBudget, categorie: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
                   <option value="">Sélectionner...</option>
                   {categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Montant maximum ({config.devise})</label>
-                <input type="number" value={newBudget.montantMax} onChange={(e) => setNewBudget({ ...newBudget, montantMax: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+                <input type="number" value={newBudget.montantMax} onChange={(e) => setNewBudget({ ...newBudget, montantMax: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Mois</label>
-                <input type="month" value={newBudget.mois} onChange={(e) => setNewBudget({ ...newBudget, mois: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+                <input type="month" value={newBudget.mois} onChange={(e) => setNewBudget({ ...newBudget, mois: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
               </div>
             </div>
             <div className="flex gap-2 mt-6">
-              <button type="button" onClick={ajouterBudget} className="flex-1 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">Créer</button>
-              <button type="button" onClick={() => setShowAddBudget(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">Annuler</button>
+              <button type="button" onClick={ajouterBudget} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">Créer</button>
+              <button type="button" onClick={() => setShowAddBudget(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
             </div>
           </div>
         </div>
       )}
 
       {showStats && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-8 animate-fade-in overflow-auto">
-          <div className={`${cardClass} rounded-lg p-6 w-full max-w-4xl max-h-full overflow-auto`}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-8 backdrop-blur-sm overflow-auto">
+          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-4xl max-h-full overflow-auto shadow-2xl border ${borderClass}`}>
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-2xl font-bold">Statistiques avancées</h3>
-              <button onClick={() => setShowStats(false)} className="text-gray-500 hover:text-gray-700">
-                <Trash2 className="w-6 h-6" />
+              <button onClick={() => setShowStats(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
               </button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className={`p-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg`}>
+              <div className={`p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gradient-to-br from-blue-50 to-blue-100'} border ${borderClass}`}>
                 <div className={`text-sm ${mutedClass} mb-1`}>Dépense moyenne</div>
                 <div className="text-xl font-bold">{getStatsAvancees().depensesMoyennes.toFixed(2)} {config.devise}</div>
               </div>
-              <div className={`p-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg`}>
+              <div className={`p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gradient-to-br from-green-50 to-green-100'} border ${borderClass}`}>
                 <div className={`text-sm ${mutedClass} mb-1`}>Revenu moyen</div>
                 <div className="text-xl font-bold">{getStatsAvancees().revenusMoyens.toFixed(2)} {config.devise}</div>
               </div>
-              <div className={`p-4 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg`}>
+              <div className={`p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gradient-to-br from-purple-50 to-purple-100'} border ${borderClass}`}>
                 <div className={`text-sm ${mutedClass} mb-1`}>Taux d'épargne</div>
                 <div className="text-xl font-bold">{getStatsAvancees().tauxEpargne.toFixed(1)}%</div>
               </div>
@@ -932,8 +1007,8 @@ const BudgetApp = () => {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="revenus" fill="#10b981" name="Revenus" />
-                  <Bar dataKey="depenses" fill="#ef4444" name="Dépenses" />
+                  <Bar dataKey="revenus" fill="#10b981" name="Revenus" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="depenses" fill="#ef4444" name="Dépenses" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
