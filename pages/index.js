@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Menu, Home, CreditCard, Target, Settings, User, Plus, TrendingUp, TrendingDown, Wallet, Calendar, Trash2, Download, Upload, Search, Sun, Moon, BarChart3, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -50,7 +50,7 @@ const BudgetApp = () => {
   
   const [tags, setTags] = useState(['personnel', 'professionnel', 'urgent']);
   
-  const categories = {
+  const categories = useMemo(() => ({
     depenses: [
       { id: 1, nom: 'Alimentation', icon: '🍕', color: '#ef4444' },
       { id: 2, nom: 'Logement', icon: '🏠', color: '#f59e0b' },
@@ -70,13 +70,13 @@ const BudgetApp = () => {
       { id: 2, nom: 'Épargne', icon: '🏦', color: '#8b5cf6' },
       { id: 3, nom: 'Crypto', icon: '₿', color: '#a855f7' }
     ]
-  };
+  }), []);
   
-  const typesComptes = [
+  const typesComptes = useMemo(() => [
     { value: 'courant', label: 'Compte courant', icon: '💳' },
     { value: 'epargne', label: 'Compte épargne', icon: '🏦' },
     { value: 'investissement', label: 'Investissement', icon: '📈' }
-  ];
+  ], []);
   
   const [showAddCompte, setShowAddCompte] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
@@ -109,16 +109,23 @@ const BudgetApp = () => {
     document.body.className = darkMode ? 'dark' : '';
   }, [darkMode]);
   
-  const ajouterCompte = () => {
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  
+  const showToast = useCallback((message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+  }, []);
+  
+  const ajouterCompte = useCallback(() => {
     if (!newCompte.nom) return showToast('Veuillez entrer un nom', 'error');
     const nouveauCompte = { id: Date.now(), ...newCompte };
-    setComptes([...comptes, nouveauCompte]);
+    setComptes(prev => [...prev, nouveauCompte]);
     setNewCompte({ nom: '', type: 'courant', soldeInitial: 0, couleur: '#3b82f6' });
     setShowAddCompte(false);
     showToast('Compte créé avec succès', 'success');
-  };
+  }, [newCompte, showToast]);
   
-  const ajouterTransaction = () => {
+  const ajouterTransaction = useCallback(() => {
     if (!newTransaction.libelle || !newTransaction.categorie) {
       return showToast('Veuillez remplir tous les champs', 'error');
     }
@@ -127,71 +134,71 @@ const BudgetApp = () => {
       ...newTransaction,
       montant: newTransaction.type === 'DÉPENSES' ? -Math.abs(newTransaction.montant) : Math.abs(newTransaction.montant)
     };
-    setTransactions([nouvelleTransaction, ...transactions]);
-    setNewTransaction({ date: new Date().toISOString().split('T')[0], libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', compteId: comptes[0]?.id || 1, tags: [] });
+    setTransactions(prev => [nouvelleTransaction, ...prev]);
+    setNewTransaction({ date: new Date().toISOString().split('T')[0], libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', compteId: 1, tags: [] });
     setShowAddTransaction(false);
     showToast('Transaction ajoutée', 'success');
-  };
+  }, [newTransaction, showToast]);
   
-  const ajouterObjectif = () => {
+  const ajouterObjectif = useCallback(() => {
     if (!newObjectif.nom || newObjectif.montantCible <= 0) {
       return showToast('Veuillez remplir tous les champs', 'error');
     }
     const nouvelObjectif = { id: Date.now(), ...newObjectif };
-    setObjectifs([...objectifs, nouvelObjectif]);
+    setObjectifs(prev => [...prev, nouvelObjectif]);
     setNewObjectif({ nom: '', montantCible: 0, montantActuel: 0, dateObjectif: '', categorie: '' });
     setShowAddObjectif(false);
     showToast('Objectif créé', 'success');
-  };
+  }, [newObjectif, showToast]);
   
-  const ajouterTransactionRecurrente = () => {
+  const ajouterTransactionRecurrente = useCallback(() => {
     if (!newRecurrente.libelle || !newRecurrente.categorie) {
       return showToast('Veuillez remplir tous les champs', 'error');
     }
     const nouvelleRecurrente = { id: Date.now(), ...newRecurrente, actif: true };
-    setTransactionsRecurrentes([...transactionsRecurrentes, nouvelleRecurrente]);
+    setTransactionsRecurrentes(prev => [...prev, nouvelleRecurrente]);
     setNewRecurrente({ libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', jour: 1 });
     setShowAddRecurrente(false);
     showToast('Transaction récurrente créée', 'success');
-  };
+  }, [newRecurrente, showToast]);
   
-  const ajouterTag = () => {
+  const ajouterTag = useCallback(() => {
     if (!newTag || tags.includes(newTag)) {
       return showToast('Tag invalide ou déjà existant', 'error');
     }
-    setTags([...tags, newTag]);
+    setTags(prev => [...prev, newTag]);
     setNewTag('');
     setShowAddTag(false);
     showToast('Tag créé', 'success');
-  };
+  }, [newTag, tags, showToast]);
   
-  const ajouterBudget = () => {
+  const ajouterBudget = useCallback(() => {
     if (!newBudget.categorie || newBudget.montantMax <= 0) {
       return showToast('Veuillez remplir tous les champs', 'error');
     }
     const nouveauBudget = { id: Date.now(), ...newBudget };
-    setBudgets([...budgets, nouveauBudget]);
+    setBudgets(prev => [...prev, nouveauBudget]);
     setNewBudget({ categorie: '', montantMax: 0, mois: new Date().toISOString().slice(0, 7) });
     setShowAddBudget(false);
     showToast('Budget créé', 'success');
-  };
+  }, [newBudget, showToast]);
   
-  const supprimerTransaction = (id) => {
-    setTransactions(transactions.filter(t => t.id !== id));
+  const supprimerTransaction = useCallback((id) => {
+    setTransactions(prev => prev.filter(t => t.id !== id));
     showToast('Transaction supprimée', 'success');
-  };
+  }, [showToast]);
   
-  const supprimerObjectif = (id) => {
-    setObjectifs(objectifs.filter(o => o.id !== id));
+  const supprimerObjectif = useCallback((id) => {
+    setObjectifs(prev => prev.filter(o => o.id !== id));
     showToast('Objectif supprimé', 'success');
-  };
+  }, [showToast]);
   
-  const supprimerBudget = (id) => {
-    setBudgets(budgets.filter(b => b.id !== id));
+  const supprimerBudget = useCallback((id) => {
+    setBudgets(prev => prev.filter(b => b.id !== id));
     showToast('Budget supprimé', 'success');
-  };
+  }, [showToast]);
   
-  const exporterDonnees = () => {
+  const exporterDonnees = useCallback(() => {
     const data = { comptes, transactions, objectifs, transactionsRecurrentes, budgets, tags, profil, config };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -200,9 +207,9 @@ const BudgetApp = () => {
     a.download = `budget-export-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     showToast('Données exportées', 'success');
-  };
+  }, [comptes, transactions, objectifs, transactionsRecurrentes, budgets, tags, profil, config, showToast]);
   
-  const importerDonnees = (e) => {
+  const importerDonnees = useCallback((e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
@@ -223,14 +230,7 @@ const BudgetApp = () => {
       }
     };
     reader.readAsText(file);
-  };
-  
-  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-  
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
-  };
+  }, [showToast]);
   
   const stats = useMemo(() => ({
     totalRevenus: transactions.filter(t => t.montant > 0).reduce((sum, t) => sum + t.montant, 0),
@@ -239,15 +239,17 @@ const BudgetApp = () => {
     nbTransactions: transactions.length
   }), [transactions, comptesAvecSoldes]);
   
-  const transactionsFiltrees = transactions.filter(t => {
-    if (filtreType !== 'TOUS' && t.type !== filtreType) return false;
-    if (filtreCategorie && t.categorie !== filtreCategorie) return false;
-    if (filtreCompte && t.compteId !== parseInt(filtreCompte)) return false;
-    if (searchTerm && !t.libelle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    return true;
-  });
+  const transactionsFiltrees = useMemo(() => {
+    return transactions.filter(t => {
+      if (filtreType !== 'TOUS' && t.type !== filtreType) return false;
+      if (filtreCategorie && t.categorie !== filtreCategorie) return false;
+      if (filtreCompte && t.compteId !== parseInt(filtreCompte)) return false;
+      if (searchTerm && !t.libelle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      return true;
+    });
+  }, [transactions, filtreType, filtreCategorie, filtreCompte, searchTerm]);
   
-  const getDepensesParCategorie = () => {
+  const getDepensesParCategorie = useCallback(() => {
     const depenses = transactions.filter(t => t.montant < 0);
     const parCategorie = {};
     depenses.forEach(t => {
@@ -255,18 +257,18 @@ const BudgetApp = () => {
       parCategorie[t.categorie] += Math.abs(t.montant);
     });
     return Object.entries(parCategorie).map(([name, value]) => ({ name, value }));
-  };
+  }, [transactions]);
   
-  const getEvolutionSolde = () => {
+  const getEvolutionSolde = useCallback(() => {
     const sortedTrans = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
     let solde = comptes[0]?.soldeInitial || 0;
     return sortedTrans.map(t => {
       solde += t.montant;
       return { date: t.date, solde };
     });
-  };
+  }, [transactions, comptes]);
   
-  const getRevenusDepensesMois = () => {
+  const getRevenusDepensesMois = useCallback(() => {
     const mois = {};
     transactions.forEach(t => {
       const moisKey = t.date.slice(0, 7);
@@ -275,9 +277,9 @@ const BudgetApp = () => {
       else mois[moisKey].depenses += Math.abs(t.montant);
     });
     return Object.values(mois).sort((a, b) => a.mois.localeCompare(b.mois));
-  };
+  }, [transactions]);
   
-  const getBudgetAlerts = () => {
+  const getBudgetAlerts = useCallback(() => {
     return budgets.map(budget => {
       const depensesCat = transactions
         .filter(t => t.montant < 0 && t.categorie === budget.categorie && t.date.startsWith(budget.mois))
@@ -285,14 +287,14 @@ const BudgetApp = () => {
       const pourcentage = (depensesCat / budget.montantMax) * 100;
       return { ...budget, depenses: depensesCat, pourcentage, alerte: pourcentage >= 80 };
     });
-  };
+  }, [budgets, transactions]);
   
-  const getStatsAvancees = () => {
+  const getStatsAvancees = useCallback(() => {
     const depensesMoyennes = stats.totalDepenses / (transactions.filter(t => t.montant < 0).length || 1);
     const revenusMoyens = stats.totalRevenus / (transactions.filter(t => t.montant > 0).length || 1);
     const tauxEpargne = ((stats.totalRevenus - stats.totalDepenses) / stats.totalRevenus) * 100;
     return { depensesMoyennes, revenusMoyens, tauxEpargne };
-  };
+  }, [stats, transactions]);
   
   const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4'];
   
@@ -682,7 +684,7 @@ const BudgetApp = () => {
   return (
     <div className={`flex h-screen ${bgClass}`}>
       {toast.show && (
-        <div className={`fixed top-4 right-4 ${toast.type === 'success' ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-red-500 to-red-600'} text-white px-6 py-3 rounded-xl shadow-2xl z-50 animate-fade-in`}>
+        <div className={`fixed top-4 right-4 ${toast.type === 'success' ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-red-500 to-red-600'} text-white px-6 py-3 rounded-xl shadow-2xl z-50`}>
           {toast.message}
         </div>
       )}
@@ -752,21 +754,42 @@ const BudgetApp = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Nom du compte</label>
-                <input type="text" value={newCompte.nom} onChange={(e) => setNewCompte({ ...newCompte, nom: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} placeholder="Ex: Compte épargne" />
+                <input 
+                  type="text" 
+                  value={newCompte.nom} 
+                  onChange={(e) => setNewCompte(prev => ({ ...prev, nom: e.target.value }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+                  placeholder="Ex: Compte épargne" 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Type</label>
-                <select value={newCompte.type} onChange={(e) => setNewCompte({ ...newCompte, type: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
+                <select 
+                  value={newCompte.type} 
+                  onChange={(e) => setNewCompte(prev => ({ ...prev, type: e.target.value }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
+                >
                   {typesComptes.map(type => (<option key={type.value} value={type.value}>{type.icon} {type.label}</option>))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Solde initial ({config.devise})</label>
-                <input type="number" step="0.01" value={newCompte.soldeInitial} onChange={(e) => setNewCompte({ ...newCompte, soldeInitial: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  value={newCompte.soldeInitial} 
+                  onChange={(e) => setNewCompte(prev => ({ ...prev, soldeInitial: parseFloat(e.target.value) || 0 }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Couleur</label>
-                <input type="color" value={newCompte.couleur} onChange={(e) => setNewCompte({ ...newCompte, couleur: e.target.value })} className={`w-full h-12 px-2 py-1 border ${borderClass} rounded-xl cursor-pointer`} />
+                <input 
+                  type="color" 
+                  value={newCompte.couleur} 
+                  onChange={(e) => setNewCompte(prev => ({ ...prev, couleur: e.target.value }))} 
+                  className={`w-full h-12 px-2 py-1 border ${borderClass} rounded-xl cursor-pointer`} 
+                />
               </div>
             </div>
             <div className="flex gap-2 mt-6">
@@ -789,19 +812,40 @@ const BudgetApp = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Date</label>
-                <input type="date" value={newTransaction.date} onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
+                <input 
+                  type="date" 
+                  value={newTransaction.date} 
+                  onChange={(e) => setNewTransaction(prev => ({ ...prev, date: e.target.value }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Libellé</label>
-                <input type="text" value={newTransaction.libelle} onChange={(e) => setNewTransaction({ ...newTransaction, libelle: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} placeholder="Ex: Courses" />
+                <input 
+                  type="text" 
+                  value={newTransaction.libelle} 
+                  onChange={(e) => setNewTransaction(prev => ({ ...prev, libelle: e.target.value }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+                  placeholder="Ex: Courses" 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Montant ({config.devise})</label>
-                <input type="number" step="0.01" value={newTransaction.montant} onChange={(e) => setNewTransaction({ ...newTransaction, montant: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  value={newTransaction.montant} 
+                  onChange={(e) => setNewTransaction(prev => ({ ...prev, montant: parseFloat(e.target.value) || 0 }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Type</label>
-                <select value={newTransaction.type} onChange={(e) => setNewTransaction({ ...newTransaction, type: e.target.value, categorie: '' })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
+                <select 
+                  value={newTransaction.type} 
+                  onChange={(e) => setNewTransaction(prev => ({ ...prev, type: e.target.value, categorie: '' }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
+                >
                   <option value="DÉPENSES">Dépenses</option>
                   <option value="REVENUS">Revenus</option>
                   <option value="PLACEMENTS">Placements</option>
@@ -809,7 +853,11 @@ const BudgetApp = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Catégorie</label>
-                <select value={newTransaction.categorie} onChange={(e) => setNewTransaction({ ...newTransaction, categorie: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
+                <select 
+                  value={newTransaction.categorie} 
+                  onChange={(e) => setNewTransaction(prev => ({ ...prev, categorie: e.target.value }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
+                >
                   <option value="">Sélectionner...</option>
                   {newTransaction.type === 'DÉPENSES' && categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
                   {newTransaction.type === 'REVENUS' && categories.revenus.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
@@ -818,7 +866,11 @@ const BudgetApp = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Compte</label>
-                <select value={newTransaction.compteId} onChange={(e) => setNewTransaction({ ...newTransaction, compteId: parseInt(e.target.value) })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
+                <select 
+                  value={newTransaction.compteId} 
+                  onChange={(e) => setNewTransaction(prev => ({ ...prev, compteId: parseInt(e.target.value) }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
+                >
                   {comptes.map(c => (<option key={c.id} value={c.id}>{c.nom}</option>))}
                 </select>
               </div>
@@ -843,23 +895,50 @@ const BudgetApp = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Nom de l'objectif</label>
-                <input type="text" value={newObjectif.nom} onChange={(e) => setNewObjectif({ ...newObjectif, nom: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} placeholder="Ex: Voyage en Italie" />
+                <input 
+                  type="text" 
+                  value={newObjectif.nom} 
+                  onChange={(e) => setNewObjectif(prev => ({ ...prev, nom: e.target.value }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
+                  placeholder="Ex: Voyage en Italie" 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Montant cible ({config.devise})</label>
-                <input type="number" value={newObjectif.montantCible} onChange={(e) => setNewObjectif({ ...newObjectif, montantCible: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} />
+                <input 
+                  type="number" 
+                  value={newObjectif.montantCible} 
+                  onChange={(e) => setNewObjectif(prev => ({ ...prev, montantCible: parseFloat(e.target.value) || 0 }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Montant actuel ({config.devise})</label>
-                <input type="number" value={newObjectif.montantActuel} onChange={(e) => setNewObjectif({ ...newObjectif, montantActuel: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} />
+                <input 
+                  type="number" 
+                  value={newObjectif.montantActuel} 
+                  onChange={(e) => setNewObjectif(prev => ({ ...prev, montantActuel: parseFloat(e.target.value) || 0 }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Date objectif</label>
-                <input type="date" value={newObjectif.dateObjectif} onChange={(e) => setNewObjectif({ ...newObjectif, dateObjectif: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} />
+                <input 
+                  type="date" 
+                  value={newObjectif.dateObjectif} 
+                  onChange={(e) => setNewObjectif(prev => ({ ...prev, dateObjectif: e.target.value }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Catégorie</label>
-                <input type="text" value={newObjectif.categorie} onChange={(e) => setNewObjectif({ ...newObjectif, categorie: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} placeholder="Ex: Vacances" />
+                <input 
+                  type="text" 
+                  value={newObjectif.categorie} 
+                  onChange={(e) => setNewObjectif(prev => ({ ...prev, categorie: e.target.value }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
+                  placeholder="Ex: Vacances" 
+                />
               </div>
             </div>
             <div className="flex gap-2 mt-6">
@@ -882,15 +961,31 @@ const BudgetApp = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Libellé</label>
-                <input type="text" value={newRecurrente.libelle} onChange={(e) => setNewRecurrente({ ...newRecurrente, libelle: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} placeholder="Ex: Abonnement" />
+                <input 
+                  type="text" 
+                  value={newRecurrente.libelle} 
+                  onChange={(e) => setNewRecurrente(prev => ({ ...prev, libelle: e.target.value }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} 
+                  placeholder="Ex: Abonnement" 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Montant ({config.devise})</label>
-                <input type="number" step="0.01" value={newRecurrente.montant} onChange={(e) => setNewRecurrente({ ...newRecurrente, montant: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} />
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  value={newRecurrente.montant} 
+                  onChange={(e) => setNewRecurrente(prev => ({ ...prev, montant: parseFloat(e.target.value) || 0 }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Type</label>
-                <select value={newRecurrente.type} onChange={(e) => setNewRecurrente({ ...newRecurrente, type: e.target.value, categorie: '' })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`}>
+                <select 
+                  value={newRecurrente.type} 
+                  onChange={(e) => setNewRecurrente(prev => ({ ...prev, type: e.target.value, categorie: '' }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`}
+                >
                   <option value="DÉPENSES">Dépenses</option>
                   <option value="REVENUS">Revenus</option>
                   <option value="PLACEMENTS">Placements</option>
@@ -898,7 +993,11 @@ const BudgetApp = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Catégorie</label>
-                <select value={newRecurrente.categorie} onChange={(e) => setNewRecurrente({ ...newRecurrente, categorie: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`}>
+                <select 
+                  value={newRecurrente.categorie} 
+                  onChange={(e) => setNewRecurrente(prev => ({ ...prev, categorie: e.target.value }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`}
+                >
                   <option value="">Sélectionner...</option>
                   {newRecurrente.type === 'DÉPENSES' && categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
                   {newRecurrente.type === 'REVENUS' && categories.revenus.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
@@ -907,7 +1006,14 @@ const BudgetApp = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Jour du mois (1-31)</label>
-                <input type="number" min="1" max="31" value={newRecurrente.jour} onChange={(e) => setNewRecurrente({ ...newRecurrente, jour: parseInt(e.target.value) || 1 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} />
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="31" 
+                  value={newRecurrente.jour} 
+                  onChange={(e) => setNewRecurrente(prev => ({ ...prev, jour: parseInt(e.target.value) || 1 }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} 
+                />
               </div>
             </div>
             <div className="flex gap-2 mt-6">
@@ -929,7 +1035,13 @@ const BudgetApp = () => {
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1">Nom du tag</label>
-              <input type="text" value={newTag} onChange={(e) => setNewTag(e.target.value)} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-indigo-500 outline-none`} placeholder="Ex: personnel" />
+              <input 
+                type="text" 
+                value={newTag} 
+                onChange={(e) => setNewTag(e.target.value)} 
+                className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-indigo-500 outline-none`} 
+                placeholder="Ex: personnel" 
+              />
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={ajouterTag} className="flex-1 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-4 py-3 rounded-xl hover:from-indigo-600 hover:to-indigo-700 shadow-lg transition-all">Créer</button>
@@ -951,18 +1063,32 @@ const BudgetApp = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Catégorie</label>
-                <select value={newBudget.categorie} onChange={(e) => setNewBudget({ ...newBudget, categorie: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
+                <select 
+                  value={newBudget.categorie} 
+                  onChange={(e) => setNewBudget(prev => ({ ...prev, categorie: e.target.value }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
+                >
                   <option value="">Sélectionner...</option>
                   {categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Montant maximum ({config.devise})</label>
-                <input type="number" value={newBudget.montantMax} onChange={(e) => setNewBudget({ ...newBudget, montantMax: parseFloat(e.target.value) || 0 })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
+                <input 
+                  type="number" 
+                  value={newBudget.montantMax} 
+                  onChange={(e) => setNewBudget(prev => ({ ...prev, montantMax: parseFloat(e.target.value) || 0 }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Mois</label>
-                <input type="month" value={newBudget.mois} onChange={(e) => setNewBudget({ ...newBudget, mois: e.target.value })} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
+                <input 
+                  type="month" 
+                  value={newBudget.mois} 
+                  onChange={(e) => setNewBudget(prev => ({ ...prev, mois: e.target.value }))} 
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+                />
               </div>
             </div>
             <div className="flex gap-2 mt-6">
