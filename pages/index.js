@@ -2,6 +2,407 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Menu, Home, CreditCard, Target, Settings, User, Plus, TrendingUp, TrendingDown, Wallet, Calendar, Trash2, Download, Upload, Search, Sun, Moon, BarChart3, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+// Modal composants séparés pour éviter les re-renders
+const ModalCompte = ({ show, onClose, onCreate, darkMode, typesComptes, devise }) => {
+  const [data, setData] = useState({ nom: '', type: 'courant', soldeInitial: 0, couleur: '#3b82f6' });
+  
+  if (!show) return null;
+  
+  const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
+  
+  const handleSubmit = () => {
+    onCreate(data);
+    setData({ nom: '', type: 'courant', soldeInitial: 0, couleur: '#3b82f6' });
+  };
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold">Nouveau compte</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Nom du compte</label>
+            <input 
+              type="text" 
+              value={data.nom} 
+              onChange={(e) => setData({ ...data, nom: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+              placeholder="Ex: Compte épargne" 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Type</label>
+            <select 
+              value={data.type} 
+              onChange={(e) => setData({ ...data, type: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
+            >
+              {typesComptes.map(type => (<option key={type.value} value={type.value}>{type.icon} {type.label}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Solde initial ({devise})</label>
+            <input 
+              type="number" 
+              step="0.01" 
+              value={data.soldeInitial} 
+              onChange={(e) => setData({ ...data, soldeInitial: parseFloat(e.target.value) || 0 })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Couleur</label>
+            <input 
+              type="color" 
+              value={data.couleur} 
+              onChange={(e) => setData({ ...data, couleur: e.target.value })} 
+              className={`w-full h-12 px-2 py-1 border ${borderClass} rounded-xl cursor-pointer`} 
+            />
+          </div>
+        </div>
+        <div className="flex gap-2 mt-6">
+          <button type="button" onClick={handleSubmit} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">Créer</button>
+          <button type="button" onClick={onClose} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ModalTransaction = ({ show, onClose, onCreate, darkMode, comptes, categories, devise }) => {
+  const [data, setData] = useState({ date: new Date().toISOString().split('T')[0], libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', compteId: comptes[0]?.id || 1, tags: [] });
+  
+  if (!show) return null;
+  
+  const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
+  
+  const handleSubmit = () => {
+    onCreate(data);
+    setData({ date: new Date().toISOString().split('T')[0], libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', compteId: comptes[0]?.id || 1, tags: [] });
+  };
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold">Nouvelle transaction</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Date</label>
+            <input 
+              type="date" 
+              value={data.date} 
+              onChange={(e) => setData({ ...data, date: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Libellé</label>
+            <input 
+              type="text" 
+              value={data.libelle} 
+              onChange={(e) => setData({ ...data, libelle: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+              placeholder="Ex: Courses" 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Montant ({devise})</label>
+            <input 
+              type="number" 
+              step="0.01" 
+              value={data.montant} 
+              onChange={(e) => setData({ ...data, montant: parseFloat(e.target.value) || 0 })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Type</label>
+            <select 
+              value={data.type} 
+              onChange={(e) => setData({ ...data, type: e.target.value, categorie: '' })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
+            >
+              <option value="DÉPENSES">Dépenses</option>
+              <option value="REVENUS">Revenus</option>
+              <option value="PLACEMENTS">Placements</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Catégorie</label>
+            <select 
+              value={data.categorie} 
+              onChange={(e) => setData({ ...data, categorie: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
+            >
+              <option value="">Sélectionner...</option>
+              {data.type === 'DÉPENSES' && categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+              {data.type === 'REVENUS' && categories.revenus.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+              {data.type === 'PLACEMENTS' && categories.placements.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Compte</label>
+            <select 
+              value={data.compteId} 
+              onChange={(e) => setData({ ...data, compteId: parseInt(e.target.value) })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
+            >
+              {comptes.map(c => (<option key={c.id} value={c.id}>{c.nom}</option>))}
+            </select>
+          </div>
+        </div>
+        <div className="flex gap-2 mt-6">
+          <button type="button" onClick={handleSubmit} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">Créer</button>
+          <button type="button" onClick={onClose} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ModalObjectif = ({ show, onClose, onCreate, darkMode, devise }) => {
+  const [data, setData] = useState({ nom: '', montantCible: 0, montantActuel: 0, dateObjectif: '', categorie: '' });
+  
+  if (!show) return null;
+  
+  const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
+  
+  const handleSubmit = () => {
+    onCreate(data);
+    setData({ nom: '', montantCible: 0, montantActuel: 0, dateObjectif: '', categorie: '' });
+  };
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold">Nouvel objectif d'épargne</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Nom de l'objectif</label>
+            <input 
+              type="text" 
+              value={data.nom} 
+              onChange={(e) => setData({ ...data, nom: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
+              placeholder="Ex: Voyage en Italie" 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Montant cible ({devise})</label>
+            <input 
+              type="number" 
+              value={data.montantCible} 
+              onChange={(e) => setData({ ...data, montantCible: parseFloat(e.target.value) || 0 })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Montant actuel ({devise})</label>
+            <input 
+              type="number" 
+              value={data.montantActuel} 
+              onChange={(e) => setData({ ...data, montantActuel: parseFloat(e.target.value) || 0 })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Date objectif</label>
+            <input 
+              type="date" 
+              value={data.dateObjectif} 
+              onChange={(e) => setData({ ...data, dateObjectif: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Catégorie</label>
+            <input 
+              type="text" 
+              value={data.categorie} 
+              onChange={(e) => setData({ ...data, categorie: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
+              placeholder="Ex: Vacances" 
+            />
+          </div>
+        </div>
+        <div className="flex gap-2 mt-6">
+          <button type="button" onClick={handleSubmit} className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-xl hover:from-blue-600 hover:to-blue-700 shadow-lg transition-all">Créer</button>
+          <button type="button" onClick={onClose} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ModalRecurrente = ({ show, onClose, onCreate, darkMode, categories, devise }) => {
+  const [data, setData] = useState({ libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', jour: 1 });
+  
+  if (!show) return null;
+  
+  const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
+  
+  const handleSubmit = () => {
+    onCreate(data);
+    setData({ libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', jour: 1 });
+  };
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold">Nouvelle transaction récurrente</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Libellé</label>
+            <input 
+              type="text" 
+              value={data.libelle} 
+              onChange={(e) => setData({ ...data, libelle: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} 
+              placeholder="Ex: Abonnement" 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Montant ({devise})</label>
+            <input 
+              type="number" 
+              step="0.01" 
+              value={data.montant} 
+              onChange={(e) => setData({ ...data, montant: parseFloat(e.target.value) || 0 })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Type</label>
+            <select 
+              value={data.type} 
+              onChange={(e) => setData({ ...data, type: e.target.value, categorie: '' })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`}
+            >
+              <option value="DÉPENSES">Dépenses</option>
+              <option value="REVENUS">Revenus</option>
+              <option value="PLACEMENTS">Placements</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Catégorie</label>
+            <select 
+              value={data.categorie} 
+              onChange={(e) => setData({ ...data, categorie: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`}
+            >
+              <option value="">Sélectionner...</option>
+              {data.type === 'DÉPENSES' && categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+              {data.type === 'REVENUS' && categories.revenus.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+              {data.type === 'PLACEMENTS' && categories.placements.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Jour du mois (1-31)</label>
+            <input 
+              type="number" 
+              min="1" 
+              max="31" 
+              value={data.jour} 
+              onChange={(e) => setData({ ...data, jour: parseInt(e.target.value) || 1 })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} 
+            />
+          </div>
+        </div>
+        <div className="flex gap-2 mt-6">
+          <button type="button" onClick={handleSubmit} className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-3 rounded-xl hover:from-purple-600 hover:to-purple-700 shadow-lg transition-all">Créer</button>
+          <button type="button" onClick={onClose} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ModalBudget = ({ show, onClose, onCreate, darkMode, categories, devise }) => {
+  const [data, setData] = useState({ categorie: '', montantMax: 0, mois: new Date().toISOString().slice(0, 7) });
+  
+  if (!show) return null;
+  
+  const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
+  
+  const handleSubmit = () => {
+    onCreate(data);
+    setData({ categorie: '', montantMax: 0, mois: new Date().toISOString().slice(0, 7) });
+  };
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold">Nouveau budget</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Catégorie</label>
+            <select 
+              value={data.categorie} 
+              onChange={(e) => setData({ ...data, categorie: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
+            >
+              <option value="">Sélectionner...</option>
+              {categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Montant maximum ({devise})</label>
+            <input 
+              type="number" 
+              value={data.montantMax} 
+              onChange={(e) => setData({ ...data, montantMax: parseFloat(e.target.value) || 0 })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Mois</label>
+            <input 
+              type="month" 
+              value={data.mois} 
+              onChange={(e) => setData({ ...data, mois: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+            />
+          </div>
+        </div>
+        <div className="flex gap-2 mt-6">
+          <button type="button" onClick={handleSubmit} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">Créer</button>
+          <button type="button" onClick={onClose} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const BudgetApp = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentView, setCurrentView] = useState('dashboard');
@@ -57,7 +458,8 @@ const BudgetApp = () => {
       { id: 3, nom: 'Transport', icon: '🚗', color: '#3b82f6' },
       { id: 4, nom: 'Santé', icon: '💊', color: '#ec4899' },
       { id: 5, nom: 'Loisirs', icon: '🎮', color: '#8b5cf6' },
-      { id: 6, nom: 'Shopping', icon: '🛍️', color: '#06b6d4' }
+      { id: 6, nom: 'Shopping', icon: '🛍️', color: '#06b6d4' },
+      { id: 7, nom: 'Autre', icon: '📦', color: '#64748b' }
     ],
     revenus: [
       { id: 1, nom: 'Salaire', icon: '💼', color: '#10b981' },
@@ -82,16 +484,8 @@ const BudgetApp = () => {
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [showAddObjectif, setShowAddObjectif] = useState(false);
   const [showAddRecurrente, setShowAddRecurrente] = useState(false);
-  const [showAddTag, setShowAddTag] = useState(false);
   const [showAddBudget, setShowAddBudget] = useState(false);
   const [showStats, setShowStats] = useState(false);
-  
-  const [newCompte, setNewCompte] = useState({ nom: '', type: 'courant', soldeInitial: 0, couleur: '#3b82f6' });
-  const [newTransaction, setNewTransaction] = useState({ date: new Date().toISOString().split('T')[0], libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', compteId: 1, tags: [] });
-  const [newObjectif, setNewObjectif] = useState({ nom: '', montantCible: 0, montantActuel: 0, dateObjectif: '', categorie: '' });
-  const [newRecurrente, setNewRecurrente] = useState({ libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', jour: 1 });
-  const [newTag, setNewTag] = useState('');
-  const [newBudget, setNewBudget] = useState({ categorie: '', montantMax: 0, mois: new Date().toISOString().slice(0, 7) });
   
   const [filtreType, setFiltreType] = useState('TOUS');
   const [filtreCategorie, setFiltreCategorie] = useState('');
@@ -116,72 +510,57 @@ const BudgetApp = () => {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   }, []);
   
-  const ajouterCompte = useCallback(() => {
-    if (!newCompte.nom) return showToast('Veuillez entrer un nom', 'error');
-    const nouveauCompte = { id: Date.now(), ...newCompte };
+  const ajouterCompte = useCallback((data) => {
+    if (!data.nom) return showToast('Veuillez entrer un nom', 'error');
+    const nouveauCompte = { id: Date.now(), ...data };
     setComptes(prev => [...prev, nouveauCompte]);
-    setNewCompte({ nom: '', type: 'courant', soldeInitial: 0, couleur: '#3b82f6' });
     setShowAddCompte(false);
     showToast('Compte créé avec succès', 'success');
-  }, [newCompte, showToast]);
+  }, [showToast]);
   
-  const ajouterTransaction = useCallback(() => {
-    if (!newTransaction.libelle || !newTransaction.categorie) {
+  const ajouterTransaction = useCallback((data) => {
+    if (!data.libelle || !data.categorie) {
       return showToast('Veuillez remplir tous les champs', 'error');
     }
     const nouvelleTransaction = {
       id: Date.now(),
-      ...newTransaction,
-      montant: newTransaction.type === 'DÉPENSES' ? -Math.abs(newTransaction.montant) : Math.abs(newTransaction.montant)
+      ...data,
+      montant: data.type === 'DÉPENSES' ? -Math.abs(data.montant) : Math.abs(data.montant)
     };
     setTransactions(prev => [nouvelleTransaction, ...prev]);
-    setNewTransaction({ date: new Date().toISOString().split('T')[0], libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', compteId: 1, tags: [] });
     setShowAddTransaction(false);
     showToast('Transaction ajoutée', 'success');
-  }, [newTransaction, showToast]);
+  }, [showToast]);
   
-  const ajouterObjectif = useCallback(() => {
-    if (!newObjectif.nom || newObjectif.montantCible <= 0) {
+  const ajouterObjectif = useCallback((data) => {
+    if (!data.nom || data.montantCible <= 0) {
       return showToast('Veuillez remplir tous les champs', 'error');
     }
-    const nouvelObjectif = { id: Date.now(), ...newObjectif };
+    const nouvelObjectif = { id: Date.now(), ...data };
     setObjectifs(prev => [...prev, nouvelObjectif]);
-    setNewObjectif({ nom: '', montantCible: 0, montantActuel: 0, dateObjectif: '', categorie: '' });
     setShowAddObjectif(false);
     showToast('Objectif créé', 'success');
-  }, [newObjectif, showToast]);
+  }, [showToast]);
   
-  const ajouterTransactionRecurrente = useCallback(() => {
-    if (!newRecurrente.libelle || !newRecurrente.categorie) {
+  const ajouterBudget = useCallback((data) => {
+    if (!data.categorie || data.montantMax <= 0) {
       return showToast('Veuillez remplir tous les champs', 'error');
     }
-    const nouvelleRecurrente = { id: Date.now(), ...newRecurrente, actif: true };
-    setTransactionsRecurrentes(prev => [...prev, nouvelleRecurrente]);
-    setNewRecurrente({ libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', jour: 1 });
-    setShowAddRecurrente(false);
-    showToast('Transaction récurrente créée', 'success');
-  }, [newRecurrente, showToast]);
-  
-  const ajouterTag = useCallback(() => {
-    if (!newTag || tags.includes(newTag)) {
-      return showToast('Tag invalide ou déjà existant', 'error');
-    }
-    setTags(prev => [...prev, newTag]);
-    setNewTag('');
-    setShowAddTag(false);
-    showToast('Tag créé', 'success');
-  }, [newTag, tags, showToast]);
-  
-  const ajouterBudget = useCallback(() => {
-    if (!newBudget.categorie || newBudget.montantMax <= 0) {
-      return showToast('Veuillez remplir tous les champs', 'error');
-    }
-    const nouveauBudget = { id: Date.now(), ...newBudget };
+    const nouveauBudget = { id: Date.now(), ...data };
     setBudgets(prev => [...prev, nouveauBudget]);
-    setNewBudget({ categorie: '', montantMax: 0, mois: new Date().toISOString().slice(0, 7) });
     setShowAddBudget(false);
     showToast('Budget créé', 'success');
-  }, [newBudget, showToast]);
+  }, [showToast]);
+  
+  const ajouterTransactionRecurrente = useCallback((data) => {
+    if (!data.libelle || !data.categorie) {
+      return showToast('Veuillez remplir tous les champs', 'error');
+    }
+    const nouvelleRecurrente = { id: Date.now(), ...data, actif: true };
+    setTransactionsRecurrentes(prev => [...prev, nouvelleRecurrente]);
+    setShowAddRecurrente(false);
+    showToast('Transaction récurrente créée', 'success');
+  }, [showToast]);
   
   const supprimerTransaction = useCallback((id) => {
     setTransactions(prev => prev.filter(t => t.id !== id));
@@ -618,20 +997,6 @@ const BudgetApp = () => {
         </div>
         
         <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
-          <h3 className="text-xl font-bold mb-4">Tags</h3>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {tags.map((tag, index) => (
-              <span key={index} className="bg-gradient-to-r from-indigo-100 to-indigo-200 dark:from-indigo-900 dark:to-indigo-800 text-indigo-800 dark:text-indigo-200 px-3 py-1 rounded-full text-sm font-medium">
-                {tag}
-              </span>
-            ))}
-          </div>
-          <button onClick={() => setShowAddTag(true)} className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-4 py-3 rounded-xl hover:from-indigo-600 hover:to-indigo-700 flex items-center justify-center gap-2 shadow-lg transition-all">
-            <Plus className="w-4 h-4" /> Ajouter un tag
-          </button>
-        </div>
-        
-        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
           <h3 className="text-xl font-bold mb-4">Paramètres généraux</h3>
           <div className="space-y-4">
             <div>
@@ -742,362 +1107,50 @@ const BudgetApp = () => {
       {currentView === 'config' && <ConfigView />}
       {currentView === 'profil' && <ProfilView />}
 
-      {showAddCompte && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold">Nouveau compte</h3>
-              <button onClick={() => setShowAddCompte(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Nom du compte</label>
-                <input 
-                  type="text" 
-                  value={newCompte.nom} 
-                  onChange={(e) => setNewCompte(prev => ({ ...prev, nom: e.target.value }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
-                  placeholder="Ex: Compte épargne" 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Type</label>
-                <select 
-                  value={newCompte.type} 
-                  onChange={(e) => setNewCompte(prev => ({ ...prev, type: e.target.value }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
-                >
-                  {typesComptes.map(type => (<option key={type.value} value={type.value}>{type.icon} {type.label}</option>))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Solde initial ({config.devise})</label>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  value={newCompte.soldeInitial} 
-                  onChange={(e) => setNewCompte(prev => ({ ...prev, soldeInitial: parseFloat(e.target.value) || 0 }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Couleur</label>
-                <input 
-                  type="color" 
-                  value={newCompte.couleur} 
-                  onChange={(e) => setNewCompte(prev => ({ ...prev, couleur: e.target.value }))} 
-                  className={`w-full h-12 px-2 py-1 border ${borderClass} rounded-xl cursor-pointer`} 
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 mt-6">
-              <button type="button" onClick={ajouterCompte} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">Créer</button>
-              <button type="button" onClick={() => setShowAddCompte(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalCompte 
+        show={showAddCompte} 
+        onClose={() => setShowAddCompte(false)} 
+        onCreate={ajouterCompte}
+        darkMode={darkMode}
+        typesComptes={typesComptes}
+        devise={config.devise}
+      />
 
-      {showAddTransaction && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold">Nouvelle transaction</h3>
-              <button onClick={() => setShowAddTransaction(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Date</label>
-                <input 
-                  type="date" 
-                  value={newTransaction.date} 
-                  onChange={(e) => setNewTransaction(prev => ({ ...prev, date: e.target.value }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Libellé</label>
-                <input 
-                  type="text" 
-                  value={newTransaction.libelle} 
-                  onChange={(e) => setNewTransaction(prev => ({ ...prev, libelle: e.target.value }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
-                  placeholder="Ex: Courses" 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Montant ({config.devise})</label>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  value={newTransaction.montant} 
-                  onChange={(e) => setNewTransaction(prev => ({ ...prev, montant: parseFloat(e.target.value) || 0 }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Type</label>
-                <select 
-                  value={newTransaction.type} 
-                  onChange={(e) => setNewTransaction(prev => ({ ...prev, type: e.target.value, categorie: '' }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
-                >
-                  <option value="DÉPENSES">Dépenses</option>
-                  <option value="REVENUS">Revenus</option>
-                  <option value="PLACEMENTS">Placements</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Catégorie</label>
-                <select 
-                  value={newTransaction.categorie} 
-                  onChange={(e) => setNewTransaction(prev => ({ ...prev, categorie: e.target.value }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
-                >
-                  <option value="">Sélectionner...</option>
-                  {newTransaction.type === 'DÉPENSES' && categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-                  {newTransaction.type === 'REVENUS' && categories.revenus.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-                  {newTransaction.type === 'PLACEMENTS' && categories.placements.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Compte</label>
-                <select 
-                  value={newTransaction.compteId} 
-                  onChange={(e) => setNewTransaction(prev => ({ ...prev, compteId: parseInt(e.target.value) }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
-                >
-                  {comptes.map(c => (<option key={c.id} value={c.id}>{c.nom}</option>))}
-                </select>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-6">
-              <button type="button" onClick={ajouterTransaction} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">Créer</button>
-              <button type="button" onClick={() => setShowAddTransaction(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalTransaction 
+        show={showAddTransaction} 
+        onClose={() => setShowAddTransaction(false)} 
+        onCreate={ajouterTransaction}
+        darkMode={darkMode}
+        comptes={comptes}
+        categories={categories}
+        devise={config.devise}
+      />
 
-      {showAddObjectif && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold">Nouvel objectif d'épargne</h3>
-              <button onClick={() => setShowAddObjectif(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Nom de l'objectif</label>
-                <input 
-                  type="text" 
-                  value={newObjectif.nom} 
-                  onChange={(e) => setNewObjectif(prev => ({ ...prev, nom: e.target.value }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
-                  placeholder="Ex: Voyage en Italie" 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Montant cible ({config.devise})</label>
-                <input 
-                  type="number" 
-                  value={newObjectif.montantCible} 
-                  onChange={(e) => setNewObjectif(prev => ({ ...prev, montantCible: parseFloat(e.target.value) || 0 }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Montant actuel ({config.devise})</label>
-                <input 
-                  type="number" 
-                  value={newObjectif.montantActuel} 
-                  onChange={(e) => setNewObjectif(prev => ({ ...prev, montantActuel: parseFloat(e.target.value) || 0 }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Date objectif</label>
-                <input 
-                  type="date" 
-                  value={newObjectif.dateObjectif} 
-                  onChange={(e) => setNewObjectif(prev => ({ ...prev, dateObjectif: e.target.value }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Catégorie</label>
-                <input 
-                  type="text" 
-                  value={newObjectif.categorie} 
-                  onChange={(e) => setNewObjectif(prev => ({ ...prev, categorie: e.target.value }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
-                  placeholder="Ex: Vacances" 
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 mt-6">
-              <button type="button" onClick={ajouterObjectif} className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-xl hover:from-blue-600 hover:to-blue-700 shadow-lg transition-all">Créer</button>
-              <button type="button" onClick={() => setShowAddObjectif(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalObjectif 
+        show={showAddObjectif} 
+        onClose={() => setShowAddObjectif(false)} 
+        onCreate={ajouterObjectif}
+        darkMode={darkMode}
+        devise={config.devise}
+      />
 
-      {showAddRecurrente && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold">Nouvelle transaction récurrente</h3>
-              <button onClick={() => setShowAddRecurrente(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Libellé</label>
-                <input 
-                  type="text" 
-                  value={newRecurrente.libelle} 
-                  onChange={(e) => setNewRecurrente(prev => ({ ...prev, libelle: e.target.value }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} 
-                  placeholder="Ex: Abonnement" 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Montant ({config.devise})</label>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  value={newRecurrente.montant} 
-                  onChange={(e) => setNewRecurrente(prev => ({ ...prev, montant: parseFloat(e.target.value) || 0 }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Type</label>
-                <select 
-                  value={newRecurrente.type} 
-                  onChange={(e) => setNewRecurrente(prev => ({ ...prev, type: e.target.value, categorie: '' }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`}
-                >
-                  <option value="DÉPENSES">Dépenses</option>
-                  <option value="REVENUS">Revenus</option>
-                  <option value="PLACEMENTS">Placements</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Catégorie</label>
-                <select 
-                  value={newRecurrente.categorie} 
-                  onChange={(e) => setNewRecurrente(prev => ({ ...prev, categorie: e.target.value }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`}
-                >
-                  <option value="">Sélectionner...</option>
-                  {newRecurrente.type === 'DÉPENSES' && categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-                  {newRecurrente.type === 'REVENUS' && categories.revenus.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-                  {newRecurrente.type === 'PLACEMENTS' && categories.placements.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Jour du mois (1-31)</label>
-                <input 
-                  type="number" 
-                  min="1" 
-                  max="31" 
-                  value={newRecurrente.jour} 
-                  onChange={(e) => setNewRecurrente(prev => ({ ...prev, jour: parseInt(e.target.value) || 1 }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} 
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 mt-6">
-              <button type="button" onClick={ajouterTransactionRecurrente} className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-3 rounded-xl hover:from-purple-600 hover:to-purple-700 shadow-lg transition-all">Créer</button>
-              <button type="button" onClick={() => setShowAddRecurrente(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalBudget 
+        show={showAddBudget} 
+        onClose={() => setShowAddBudget(false)} 
+        onCreate={ajouterBudget}
+        darkMode={darkMode}
+        categories={categories}
+        devise={config.devise}
+      />
 
-      {showAddTag && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold">Nouveau tag</h3>
-              <button onClick={() => setShowAddTag(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Nom du tag</label>
-              <input 
-                type="text" 
-                value={newTag} 
-                onChange={(e) => setNewTag(e.target.value)} 
-                className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-indigo-500 outline-none`} 
-                placeholder="Ex: personnel" 
-              />
-            </div>
-            <div className="flex gap-2">
-              <button type="button" onClick={ajouterTag} className="flex-1 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-4 py-3 rounded-xl hover:from-indigo-600 hover:to-indigo-700 shadow-lg transition-all">Créer</button>
-              <button type="button" onClick={() => setShowAddTag(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAddBudget && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold">Nouveau budget</h3>
-              <button onClick={() => setShowAddBudget(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Catégorie</label>
-                <select 
-                  value={newBudget.categorie} 
-                  onChange={(e) => setNewBudget(prev => ({ ...prev, categorie: e.target.value }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
-                >
-                  <option value="">Sélectionner...</option>
-                  {categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Montant maximum ({config.devise})</label>
-                <input 
-                  type="number" 
-                  value={newBudget.montantMax} 
-                  onChange={(e) => setNewBudget(prev => ({ ...prev, montantMax: parseFloat(e.target.value) || 0 }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Mois</label>
-                <input 
-                  type="month" 
-                  value={newBudget.mois} 
-                  onChange={(e) => setNewBudget(prev => ({ ...prev, mois: e.target.value }))} 
-                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 mt-6">
-              <button type="button" onClick={ajouterBudget} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">Créer</button>
-              <button type="button" onClick={() => setShowAddBudget(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalRecurrente 
+        show={showAddRecurrente} 
+        onClose={() => setShowAddRecurrente(false)} 
+        onCreate={ajouterTransactionRecurrente}
+        darkMode={darkMode}
+        categories={categories}
+        devise={config.devise}
+      />
 
       {showStats && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-8 backdrop-blur-sm overflow-auto">
