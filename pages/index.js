@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
-import { CreditCard, Settings, FileText, Plus, Home, Target, User, Camera, Trash2, Edit2, Save, X, TrendingUp, AlertCircle, Download, Upload, Search, Bell, Repeat, ArrowLeftRight, CheckCircle, XCircle, Eye, EyeOff, ArrowUpCircle, ArrowDownCircle, DollarSign } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { CreditCard, Settings, FileText, Plus, Home, Target, User, Camera, Trash2, Edit2, Save, X, TrendingUp, AlertCircle, Download, Upload, Search, Bell, Repeat, ArrowLeftRight, CheckCircle, XCircle, Eye, EyeOff, ArrowUpCircle, ArrowDownCircle, DollarSign, Menu } from 'lucide-react';
 
 export default function BudgetDashboard() {
   const [currentView, setCurrentView] = useState('dashboard');
@@ -24,7 +24,7 @@ export default function BudgetDashboard() {
 
   const [profil, setProfil] = useState({
     nom: 'Joshua GRILLOT',
-    email: 'joshua.grillot@email.com',
+    email: 'joshua.h.grillot@gmail.com',
     dateNaissance: '1995-06-15',
     photo: null
   });
@@ -171,7 +171,9 @@ export default function BudgetDashboard() {
 
   const [transactions, setTransactions] = useState([
     { id: 1, date: '2025-10-05', libelle: 'Salaire octobre', montant: 2500, type: 'REVENUS', categorie: 'Salaires', sousCategorie: 'Salaire principal', compteId: 1, tags: ['travail'], recurrente: false },
-    { id: 2, date: '2025-10-03', libelle: 'Loyer octobre', montant: -750, type: 'DÉPENSES', categorie: 'Logement', sousCategorie: 'Loyer', compteId: 1, tags: ['fixe'], recurrente: false }
+    { id: 2, date: '2025-10-03', libelle: 'Loyer octobre', montant: -750, type: 'DÉPENSES', categorie: 'Logement', sousCategorie: 'Loyer', compteId: 1, tags: ['fixe'], recurrente: false },
+    { id: 3, date: '2025-10-07', libelle: 'Courses Carrefour', montant: -85, type: 'DÉPENSES', categorie: 'Alimentation', sousCategorie: 'Courses', compteId: 1, tags: [], recurrente: false },
+    { id: 4, date: '2025-10-10', libelle: 'Essence', montant: -60, type: 'DÉPENSES', categorie: 'Transport', sousCategorie: 'Carburant', compteId: 1, tags: [], recurrente: false }
   ]);
 
   const [transactionsRecurrentes, setTransactionsRecurrentes] = useState([
@@ -253,7 +255,7 @@ export default function BudgetDashboard() {
         setTransactions(prev => [...prev, nouvelleTransaction]);
       }
     });
-  }, [selectedMonth, selectedYear]);
+  }, [selectedMonth, selectedYear, transactionsRecurrentes]);
 
   const transactionsFiltrees = useMemo(() => {
     return transactions.filter(t => {
@@ -565,7 +567,7 @@ export default function BudgetDashboard() {
     }
     const transactionsCompte = transactions.filter(t => t.compteId === id);
     if (transactionsCompte.length > 0) {
-      if (!confirm(`Ce compte contient ${transactionsCompte.length} transaction(s). Continuer ?`)) return;
+      if (!window.confirm(`Ce compte contient ${transactionsCompte.length} transaction(s). Continuer ?`)) return;
     }
     setComptes(comptes.filter(c => c.id !== id));
     setTransactions(transactions.filter(t => t.compteId !== id));
@@ -615,7 +617,7 @@ export default function BudgetDashboard() {
     const transactionsOrphelines = transactions.filter(t => t.categorie === cat.nom);
     
     if (transactionsOrphelines.length > 0) {
-      if (!confirm(`${transactionsOrphelines.length} transaction(s) seront supprimées. Continuer ?`)) return;
+      if (!window.confirm(`${transactionsOrphelines.length} transaction(s) seront supprimées. Continuer ?`)) return;
       setTransactions(transactions.filter(t => t.categorie !== cat.nom));
     }
     
@@ -826,6 +828,292 @@ export default function BudgetDashboard() {
     </div>
   );
 
+  const DashboardView = () => (
+    <div className="flex-1 overflow-auto bg-gray-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Tableau de bord</h1>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setVueConsolidee(!vueConsolidee)}
+              className={`px-4 py-2 rounded-lg flex items-center gap-2 ${vueConsolidee ? 'bg-purple-500 text-white' : 'bg-white border border-gray-300'}`}
+            >
+              {vueConsolidee ? 'Consolidé' : 'Par compte'}
+            </button>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              className="px-4 py-2 border border-gray-300 rounded-lg"
+            >
+              {moisDisponibles.map((mois, index) => (
+                <option key={index} value={index}>{mois}</option>
+              ))}
+            </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="px-4 py-2 border border-gray-300 rounded-lg"
+            >
+              {anneesDisponibles.map(annee => (
+                <option key={annee} value={annee}>{annee}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {alertesActives.length > 0 && (
+          <div className="space-y-3 mb-6">
+            {alertesActives.map((alerte, index) => (
+              <Alerte key={index} {...alerte} />
+            ))}
+          </div>
+        )}
+
+        {vueConsolidee && (
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg shadow-md p-6 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm opacity-90 mb-1">Patrimoine total</div>
+                <div className="text-4xl font-bold">{patrimoineTotal.toFixed(2)} {config.devise}</div>
+                <div className="text-sm mt-2">{comptes.length} compte{comptes.length > 1 ? 's' : ''}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-4 gap-6 mb-6">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="text-gray-600 text-sm mb-2">Solde disponible</div>
+            <div className="text-3xl font-bold text-gray-800 mb-4">{soldeActuel.toFixed(0)} {config.devise}</div>
+            {!vueConsolidee && (
+              <div className="flex items-center justify-between bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-3">
+                <div className="text-xs opacity-80">•••• {config.carteBancaire}</div>
+                <CreditCard className="w-6 h-6" />
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <ArrowUpCircle className="w-5 h-5 text-green-600" />
+              <div className="text-gray-600 text-sm">Revenus</div>
+            </div>
+            <div className="text-3xl font-bold text-green-600">{totalRevenus.toFixed(0)} {config.devise}</div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <ArrowDownCircle className="w-5 h-5 text-red-600" />
+              <div className="text-gray-600 text-sm">Dépenses</div>
+            </div>
+            <div className="text-3xl font-bold text-red-600">{totalDepenses.toFixed(0)} {config.devise}</div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center gap-3 mb-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              <div className="text-gray-600 text-sm">Épargne</div>
+            </div>
+            <div className="text-3xl font-bold text-blue-600">{totalPlacements.toFixed(0)} {config.devise}</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Évolution mensuelle</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={evolutionData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="mois" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="revenus" stroke="#22c55e" strokeWidth={2} name="Revenus" />
+                <Line type="monotone" dataKey="depenses" stroke="#ef4444" strokeWidth={2} name="Dépenses" />
+                <Line type="monotone" dataKey="epargne" stroke="#3b82f6" strokeWidth={2} name="Épargne" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Budget vs Réel</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={budgetVsReelData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="categorie" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="budget" fill="#94a3b8" name="Budget" />
+                <Bar dataKey="reel" fill="#ef4444" name="Réel" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {placementsData.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Répartition des placements</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={placementsData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {placementsData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {predictions && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Prédictions fin d'année</h2>
+            <div className="grid grid-cols-3 gap-6">
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-sm text-gray-600 mb-2">Solde prévu</div>
+                <div className="text-2xl font-bold text-blue-600">{predictions.soldePrevuFinAnnee.toFixed(0)} {config.devise}</div>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-sm text-gray-600 mb-2">Épargne prévue</div>
+                <div className="text-2xl font-bold text-green-600">{predictions.epargnePrevueFinAnnee.toFixed(0)} {config.devise}</div>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <div className="text-sm text-gray-600 mb-2">Taux d'épargne</div>
+                <div className="text-2xl font-bold text-purple-600">{predictions.tauxEpargne}%</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const TransactionsView = () => (
+    <div className="flex-1 overflow-auto bg-gray-100 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">Transactions</h1>
+          <div className="flex gap-2">
+            <label className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2">
+              <Upload className="w-4 h-4" />
+              Import CSV
+              <input type="file" accept=".csv" onChange={handleCSVImport} className="hidden" />
+            </label>
+            <button type="button" onClick={exporterCSV} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Export
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Ajouter une transaction</h2>
+          <form onSubmit={ajouterTransaction}>
+            <div className="grid grid-cols-6 gap-4">
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Date</label>
+                <input type="date" value={newTransaction.date} onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Libellé</label>
+                <input type="text" value={newTransaction.libelle} onChange={(e) => setNewTransaction({ ...newTransaction, libelle: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="Ex: Courses" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Montant ({config.devise})</label>
+                <input type="number" step="0.01" value={newTransaction.montant} onChange={(e) => setNewTransaction({ ...newTransaction, montant: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Type</label>
+                <select value={newTransaction.type} onChange={(e) => setNewTransaction({ ...newTransaction, type: e.target.value, categorie: '', sousCategorie: '' })} className="w-full px-3 py-2 border rounded-lg">
+                  <option value="DÉPENSES">Dépenses</option>
+                  <option value="REVENUS">Revenus</option>
+                  <option value="PLACEMENTS">Placements</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Catégorie</label>
+                <select value={newTransaction.categorie} onChange={(e) => setNewTransaction({ ...newTransaction, categorie: e.target.value, sousCategorie: '' })} className="w-full px-3 py-2 border rounded-lg">
+                  <option value="">Sélectionner...</option>
+                  {newTransaction.type === 'DÉPENSES' && categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+                  {newTransaction.type === 'REVENUS' && categories.revenus.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+                  {newTransaction.type === 'PLACEMENTS' && categories.placements.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg flex items-center justify-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Ajouter
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+          <div className="flex gap-4 items-center">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input type="text" placeholder="Rechercher..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg" />
+            </div>
+            <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-4 py-2 border rounded-lg">
+              <option value="ALL">Tous</option>
+              <option value="REVENUS">Revenus</option>
+              <option value="DÉPENSES">Dépenses</option>
+              <option value="PLACEMENTS">Placements</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-blue-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold">Libellé</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold">Montant</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold">Catégorie</th>
+                <th className="px-4 py-3 text-center text-xs font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactionsFiltrees.sort((a, b) => new Date(b.date) - new Date(a.date)).map((t) => (
+                <tr key={t.id} className="border-b hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm">{new Date(t.date).toLocaleDateString('fr-FR')}</td>
+                  <td className="px-4 py-3 text-sm font-medium">{t.libelle}</td>
+                  <td className={`px-4 py-3 text-sm text-right font-bold ${t.montant >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {t.montant >= 0 ? '+' : ''}{t.montant.toFixed(2)} {config.devise}
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    <span className={`px-2 py-1 rounded text-xs ${t.type === 'REVENUS' ? 'bg-green-100 text-green-700' : t.type === 'DÉPENSES' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>{t.type}</span>
+                  </td>
+                  <td className="px-4 py-3 text-sm">{t.categorie}</td>
+                  <td className="px-4 py-3 text-center">
+                    <button type="button" onClick={() => supprimerTransaction(t.id)} className="text-red-500 hover:text-red-700">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
   const ObjectifsView = () => (
     <div className="flex-1 overflow-auto bg-gray-100 p-6">
       <div className="max-w-6xl mx-auto">
@@ -974,155 +1262,6 @@ export default function BudgetDashboard() {
     </div>
   );
 
-  const TransactionsView = () => (
-    <div className="flex-1 overflow-auto bg-gray-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Transactions</h1>
-          <div className="flex gap-2">
-            <label className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg cursor-pointer flex items-center gap-2">
-              <Upload className="w-4 h-4" />
-              Import CSV
-              <input type="file" accept=".csv" onChange={handleCSVImport} className="hidden" />
-            </label>
-            <button type="button" onClick={exporterCSV} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Export
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Ajouter une transaction</h2>
-          <form onSubmit={ajouterTransaction}>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Date</label>
-                <input type="date" value={newTransaction.date} onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Libellé</label>
-                <input type="text" value={newTransaction.libelle} onChange={(e) => setNewTransaction({ ...newTransaction, libelle: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="Ex: Courses" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Montant ({config.devise})</label>
-                <input type="number" step="0.01" value={newTransaction.montant} onChange={(e) => setNewTransaction({ ...newTransaction, montant: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Type</label>
-                <select value={newTransaction.type} onChange={(e) => setNewTransaction({ ...newTransaction, type: e.target.value, categorie: '', sousCategorie: '' })} className="w-full px-3 py-2 border rounded-lg">
-                  <option value="DÉPENSES">Dépenses</option>
-                  <option value="REVENUS">Revenus</option>
-                  <option value="PLACEMENTS">Placements</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Catégorie</label>
-                <select value={newTransaction.categorie} onChange={(e) => setNewTransaction({ ...newTransaction, categorie: e.target.value, sousCategorie: '' })} className="w-full px-3 py-2 border rounded-lg">
-                  <option value="">Sélectionner...</option>
-                  {newTransaction.type === 'DÉPENSES' && categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-                  {newTransaction.type === 'REVENUS' && categories.revenus.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-                  {newTransaction.type === 'PLACEMENTS' && categories.placements.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Sous-catégorie</label>
-                <select value={newTransaction.sousCategorie} onChange={(e) => setNewTransaction({ ...newTransaction, sousCategorie: e.target.value })} className="w-full px-3 py-2 border rounded-lg" disabled={!newTransaction.categorie}>
-                  <option value="">Aucune</option>
-                  {newTransaction.categorie && (
-                    <>
-                      {newTransaction.type === 'DÉPENSES' && categories.depenses.find(c => c.nom === newTransaction.categorie)?.sousCategories.map((sc, i) => (<option key={i} value={sc}>{sc}</option>))}
-                      {newTransaction.type === 'REVENUS' && categories.revenus.find(c => c.nom === newTransaction.categorie)?.sousCategories.map((sc, i) => (<option key={i} value={sc}>{sc}</option>))}
-                      {newTransaction.type === 'PLACEMENTS' && categories.placements.find(c => c.nom === newTransaction.categorie)?.sousCategories.map((sc, i) => (<option key={i} value={sc}>{sc}</option>))}
-                    </>
-                  )}
-                </select>
-              </div>
-            </div>
-            <div className="mt-4 flex items-center gap-4">
-              <div className="flex-1">
-                <label className="block text-sm text-gray-600 mb-1">Tags</label>
-                <div className="flex flex-wrap gap-2">
-                  {tagsDisponibles.map(tag => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => {
-                        const tags = newTransaction.tags || [];
-                        if (tags.includes(tag)) {
-                          setNewTransaction({ ...newTransaction, tags: tags.filter(t => t !== tag) });
-                        } else {
-                          setNewTransaction({ ...newTransaction, tags: [...tags, tag] });
-                        }
-                      }}
-                      className={`px-3 py-1 rounded-full text-xs ${(newTransaction.tags || []).includes(tag) ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                    >
-                      #{tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 mt-6">
-                <Plus className="w-4 h-4" />
-                Ajouter
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="flex gap-4 items-center">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input type="text" placeholder="Rechercher..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg" />
-            </div>
-            <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-4 py-2 border rounded-lg">
-              <option value="ALL">Tous</option>
-              <option value="REVENUS">Revenus</option>
-              <option value="DÉPENSES">Dépenses</option>
-              <option value="PLACEMENTS">Placements</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-blue-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold">Libellé</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold">Montant</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold">Type</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold">Catégorie</th>
-                <th className="px-4 py-3 text-center text-xs font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactionsFiltrees.sort((a, b) => new Date(b.date) - new Date(a.date)).map((t) => (
-                <tr key={t.id} className="border-b hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm">{new Date(t.date).toLocaleDateString('fr-FR')}</td>
-                  <td className="px-4 py-3 text-sm font-medium">{t.libelle}</td>
-                  <td className={`px-4 py-3 text-sm text-right font-bold ${t.montant >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {t.montant >= 0 ? '+' : ''}{t.montant.toFixed(2)} {config.devise}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className={`px-2 py-1 rounded text-xs ${t.type === 'REVENUS' ? 'bg-green-100 text-green-700' : t.type === 'DÉPENSES' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>{t.type}</span>
-                  </td>
-                  <td className="px-4 py-3 text-sm">{t.categorie}</td>
-                  <td className="px-4 py-3 text-center">
-                    <button type="button" onClick={() => supprimerTransaction(t.id)} className="text-red-500 hover:text-red-700">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-
   const ConfigView = () => (
     <div className="flex-1 overflow-auto bg-gray-100 p-6">
       <div className="max-w-6xl mx-auto">
@@ -1130,7 +1269,7 @@ export default function BudgetDashboard() {
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Sauvegarde et Export</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <button
               type="button"
               onClick={exporterDonnees}
@@ -1376,129 +1515,4 @@ export default function BudgetDashboard() {
               <div className="relative">
                 <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                   {profil.photo ? (
-                    <img src={profil.photo} alt="Profil" className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-16 h-16 text-gray-400" />
-                  )}
-                </div>
-                <label className="absolute bottom-0 right-0 bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full cursor-pointer shadow-lg">
-                  <Camera className="w-4 h-4" />
-                  <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-                </label>
-              </div>
-              <p className="text-sm text-gray-500 mt-2">Cliquer pour modifier</p>
-            </div>
-
-            <div className="flex-1 space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Nom complet</label>
-                <input
-                  type="text"
-                  value={profil.nom}
-                  onChange={(e) => setProfil({ ...profil, nom: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Adresse e-mail</label>
-                <input
-                  type="email"
-                  value={profil.email}
-                  onChange={(e) => setProfil({ ...profil, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Date de naissance</label>
-                <input
-                  type="date"
-                  value={profil.dateNaissance}
-                  onChange={(e) => setProfil({ ...profil, dateNaissance: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
-              </div>
-
-              <button 
-                type="button"
-                onClick={() => showNotification('success', 'Profil enregistré')}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                Enregistrer
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const DashboardView = () => (
-    <div className="flex-1 overflow-auto bg-gray-100 p-3 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Tableau de bord</h1>
-          <div className="flex flex-wrap items-center gap-2 md:gap-4">
-            <button
-              type="button"
-              onClick={() => setVueConsolidee(!vueConsolidee)}
-              className={`px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 text-sm ${vueConsolidee ? 'bg-purple-500 text-white' : 'bg-white border border-gray-300'}`}
-            >
-              {vueConsolidee ? 'Consolidé' : 'Par compte'}
-            </button>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-            >
-              {moisDisponibles.map((mois, index) => (
-                <option key={index} value={index}>{mois}</option>
-              ))}
-            </select>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-            >
-              {anneesDisponibles.map(annee => (
-                <option key={annee} value={annee}>{annee}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {alertesActives.length > 0 && (
-          <div className="space-y-3 mb-6">
-            {alertesActives.map((alerte, index) => (
-              <Alerte key={index} {...alerte} />
-            ))}
-          </div>
-        )}
-
-        {vueConsolidee && (
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg shadow-md p-4 md:p-6 mb-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <div className="text-sm opacity-90 mb-1">Patrimoine total</div>
-                <div className="text-3xl md:text-4xl font-bold">{patrimoineTotal.toFixed(2)} {config.devise}</div>
-                <div className="text-sm mt-2">{comptes.length} compte{comptes.length > 1 ? 's' : ''}</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
-          <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
-            <div className="text-gray-600 text-xs md:text-sm mb-2">Solde dispo</div>
-            <div className="text-2xl md:text-3xl font-bold text-gray-800 mb-2 md:mb-4">{soldeActuel.toFixed(0)} {config.devise}</div>
-            {!vueConsolidee && (
-              <div className="flex items-center justify-between bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg p-2 md:p-3">
-                <div className="text-xs opacity-80">•••• {config.carteBancaire}</div>
-                <CreditCard className="w-5 h-5 md:w-6 md:h-6" />
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-lg shadow
+                    <img src={profil.photo} alt="Prof
