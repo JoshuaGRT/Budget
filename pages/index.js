@@ -155,7 +155,7 @@ export default function BudgetDashboard() {
     setObjectifsEpargne([...objectifsEpargne, { ...newObjectif, id: Date.now() }]);
     setNewObjectif({ nom: '', montantCible: 0, montantActuel: 0, dateObjectif: '', categorie: 'Autre' });
     setShowAddObjectif(false);
-    showNotification('success', 'Objectif créé avec succès');
+    showNotification('success', 'Objectif créé');
   };
 
   const modifierObjectif = (id, champ, valeur) => {
@@ -461,14 +461,15 @@ export default function BudgetDashboard() {
     libelle: 'Virement interne'
   });
 
-  const creerTransfert = () => {
+  const creerTransfert = (e) => {
+    if (e) e.preventDefault();
     if (!transfert.vers || !transfert.montant || parseFloat(transfert.montant) <= 0) {
       showNotification('error', 'Veuillez remplir tous les champs');
       return;
     }
     
     if (transfert.de === transfert.vers) {
-      showNotification('error', 'Les comptes source et destination doivent être différents');
+      showNotification('error', 'Les comptes doivent être différents');
       return;
     }
     
@@ -505,7 +506,8 @@ export default function BudgetDashboard() {
     showNotification('success', 'Transfert effectué');
   };
 
-  const ajouterTransaction = () => {
+  const ajouterTransaction = (e) => {
+    if (e) e.preventDefault();
     if (!newTransaction.libelle || !newTransaction.montant || !newTransaction.categorie) {
       showNotification('error', 'Veuillez remplir tous les champs obligatoires');
       return;
@@ -543,7 +545,8 @@ export default function BudgetDashboard() {
     showNotification('success', 'Transaction supprimée');
   };
 
-  const ajouterCompte = () => {
+  const ajouterCompte = (e) => {
+    if (e) e.preventDefault();
     if (!newCompte.nom.trim()) {
       showNotification('error', 'Veuillez saisir un nom');
       return;
@@ -627,7 +630,8 @@ export default function BudgetDashboard() {
     });
   };
 
-  const ajouterTag = () => {
+  const ajouterTag = (e) => {
+    if (e) e.preventDefault();
     if (!newTag.trim() || tagsDisponibles.includes(newTag.trim())) {
       showNotification('error', 'Tag invalide');
       return;
@@ -905,6 +909,7 @@ export default function BudgetDashboard() {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-800">Objectifs d'épargne</h2>
               <button
+                type="button"
                 onClick={() => setShowAddObjectif(true)}
                 className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2"
               >
@@ -930,8 +935,8 @@ export default function BudgetDashboard() {
                         </div>
                         <input type="date" value={obj.dateObjectif} onChange={(e) => modifierObjectif(obj.id, 'dateObjectif', e.target.value)} className="w-full px-3 py-2 border rounded-lg" />
                         <div className="flex gap-2">
-                          <button onClick={() => setEditingObjectif(null)} className="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg">OK</button>
-                          <button onClick={() => supprimerObjectif(obj.id)} className="px-4 py-2 bg-red-500 text-white rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => setEditingObjectif(null)} className="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg">OK</button>
+                          <button type="button" onClick={() => supprimerObjectif(obj.id)} className="px-4 py-2 bg-red-500 text-white rounded-lg"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </div>
                     ) : (
@@ -946,7 +951,7 @@ export default function BudgetDashboard() {
                               <div className="text-lg font-bold text-blue-600">{progression.toFixed(0)}%</div>
                               <div className="text-xs text-gray-500">{obj.montantActuel} / {obj.montantCible}{config.devise}</div>
                             </div>
-                            <button onClick={() => setEditingObjectif(obj.id)} className="text-gray-400 hover:text-gray-600">
+                            <button type="button" onClick={() => setEditingObjectif(obj.id)} className="text-gray-400 hover:text-gray-600">
                               <Edit2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -980,7 +985,7 @@ export default function BudgetDashboard() {
               Import CSV
               <input type="file" accept=".csv" onChange={handleCSVImport} className="hidden" />
             </label>
-            <button onClick={exporterCSV} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+            <button type="button" onClick={exporterCSV} className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
               <Download className="w-4 h-4" />
               Export
             </button>
@@ -989,73 +994,80 @@ export default function BudgetDashboard() {
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Ajouter une transaction</h2>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Date</label>
-              <input type="date" value={newTransaction.date} onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Libellé</label>
-              <input type="text" value={newTransaction.libelle} onChange={(e) => setNewTransaction({ ...newTransaction, libelle: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="Ex: Courses" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Montant ({config.devise})</label>
-              <input type="number" step="0.01" value={newTransaction.montant} onChange={(e) => setNewTransaction({ ...newTransaction, montant: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Type</label>
-              <select value={newTransaction.type} onChange={(e) => setNewTransaction({ ...newTransaction, type: e.target.value, categorie: '', sousCategorie: '' })} className="w-full px-3 py-2 border rounded-lg">
-                <option value="DÉPENSES">Dépenses</option>
-                <option value="REVENUS">Revenus</option>
-                <option value="PLACEMENTS">Placements</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Catégorie</label>
-              <select value={newTransaction.categorie} onChange={(e) => setNewTransaction({ ...newTransaction, categorie: e.target.value, sousCategorie: '' })} className="w-full px-3 py-2 border rounded-lg">
-                <option value="">Sélectionner...</option>
-                {newTransaction.type === 'DÉPENSES' && categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-                {newTransaction.type === 'REVENUS' && categories.revenus.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-                {newTransaction.type === 'PLACEMENTS' && categories.placements.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Sous-catégorie</label>
-              <select value={newTransaction.sousCategorie} onChange={(e) => setNewTransaction({ ...newTransaction, sousCategorie: e.target.value })} className="w-full px-3 py-2 border rounded-lg" disabled={!newTransaction.categorie}>
-                <option value="">Aucune</option>
-                {newTransaction.categorie && (
-                  <>
-                    {newTransaction.type === 'DÉPENSES' && categories.depenses.find(c => c.nom === newTransaction.categorie)?.sousCategories.map((sc, i) => (<option key={i} value={sc}>{sc}</option>))}
-                    {newTransaction.type === 'REVENUS' && categories.revenus.find(c => c.nom === newTransaction.categorie)?.sousCategories.map((sc, i) => (<option key={i} value={sc}>{sc}</option>))}
-                    {newTransaction.type === 'PLACEMENTS' && categories.placements.find(c => c.nom === newTransaction.categorie)?.sousCategories.map((sc, i) => (<option key={i} value={sc}>{sc}</option>))}
-                  </>
-                )}
-              </select>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center gap-4">
-            <div className="flex-1">
-              <label className="block text-sm text-gray-600 mb-1">Tags</label>
-              <div className="flex flex-wrap gap-2">
-                {tagsDisponibles.map(tag => (
-                  <button key={tag} onClick={() => {
-                    const tags = newTransaction.tags || [];
-                    if (tags.includes(tag)) {
-                      setNewTransaction({ ...newTransaction, tags: tags.filter(t => t !== tag) });
-                    } else {
-                      setNewTransaction({ ...newTransaction, tags: [...tags, tag] });
-                    }
-                  }} className={`px-3 py-1 rounded-full text-xs ${(newTransaction.tags || []).includes(tag) ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-700'}`}>
-                    #{tag}
-                  </button>
-                ))}
+          <form onSubmit={ajouterTransaction}>
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Date</label>
+                <input type="date" value={newTransaction.date} onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Libellé</label>
+                <input type="text" value={newTransaction.libelle} onChange={(e) => setNewTransaction({ ...newTransaction, libelle: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="Ex: Courses" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Montant ({config.devise})</label>
+                <input type="number" step="0.01" value={newTransaction.montant} onChange={(e) => setNewTransaction({ ...newTransaction, montant: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Type</label>
+                <select value={newTransaction.type} onChange={(e) => setNewTransaction({ ...newTransaction, type: e.target.value, categorie: '', sousCategorie: '' })} className="w-full px-3 py-2 border rounded-lg">
+                  <option value="DÉPENSES">Dépenses</option>
+                  <option value="REVENUS">Revenus</option>
+                  <option value="PLACEMENTS">Placements</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Catégorie</label>
+                <select value={newTransaction.categorie} onChange={(e) => setNewTransaction({ ...newTransaction, categorie: e.target.value, sousCategorie: '' })} className="w-full px-3 py-2 border rounded-lg">
+                  <option value="">Sélectionner...</option>
+                  {newTransaction.type === 'DÉPENSES' && categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+                  {newTransaction.type === 'REVENUS' && categories.revenus.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+                  {newTransaction.type === 'PLACEMENTS' && categories.placements.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Sous-catégorie</label>
+                <select value={newTransaction.sousCategorie} onChange={(e) => setNewTransaction({ ...newTransaction, sousCategorie: e.target.value })} className="w-full px-3 py-2 border rounded-lg" disabled={!newTransaction.categorie}>
+                  <option value="">Aucune</option>
+                  {newTransaction.categorie && (
+                    <>
+                      {newTransaction.type === 'DÉPENSES' && categories.depenses.find(c => c.nom === newTransaction.categorie)?.sousCategories.map((sc, i) => (<option key={i} value={sc}>{sc}</option>))}
+                      {newTransaction.type === 'REVENUS' && categories.revenus.find(c => c.nom === newTransaction.categorie)?.sousCategories.map((sc, i) => (<option key={i} value={sc}>{sc}</option>))}
+                      {newTransaction.type === 'PLACEMENTS' && categories.placements.find(c => c.nom === newTransaction.categorie)?.sousCategories.map((sc, i) => (<option key={i} value={sc}>{sc}</option>))}
+                    </>
+                  )}
+                </select>
               </div>
             </div>
-            <button onClick={ajouterTransaction} className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 mt-6">
-              <Plus className="w-4 h-4" />
-              Ajouter
-            </button>
-          </div>
+            <div className="mt-4 flex items-center gap-4">
+              <div className="flex-1">
+                <label className="block text-sm text-gray-600 mb-1">Tags</label>
+                <div className="flex flex-wrap gap-2">
+                  {tagsDisponibles.map(tag => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        const tags = newTransaction.tags || [];
+                        if (tags.includes(tag)) {
+                          setNewTransaction({ ...newTransaction, tags: tags.filter(t => t !== tag) });
+                        } else {
+                          setNewTransaction({ ...newTransaction, tags: [...tags, tag] });
+                        }
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs ${(newTransaction.tags || []).includes(tag) ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-700'}`}
+                    >
+                      #{tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 mt-6">
+                <Plus className="w-4 h-4" />
+                Ajouter
+              </button>
+            </div>
+          </form>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
@@ -1098,7 +1110,7 @@ export default function BudgetDashboard() {
                   </td>
                   <td className="px-4 py-3 text-sm">{t.categorie}</td>
                   <td className="px-4 py-3 text-center">
-                    <button onClick={() => supprimerTransaction(t.id)} className="text-red-500 hover:text-red-700">
+                    <button type="button" onClick={() => supprimerTransaction(t.id)} className="text-red-500 hover:text-red-700">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </td>
@@ -1120,6 +1132,7 @@ export default function BudgetDashboard() {
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Sauvegarde et Export</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button
+              type="button"
               onClick={exporterDonnees}
               className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2"
             >
@@ -1132,6 +1145,7 @@ export default function BudgetDashboard() {
               <input type="file" accept=".json" onChange={importerDonnees} className="hidden" />
             </label>
             <button
+              type="button"
               onClick={exporterPDF}
               className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2"
             >
@@ -1177,7 +1191,7 @@ export default function BudgetDashboard() {
             <div key={type} className="bg-white rounded-lg shadow-md p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">{type === 'revenus' ? 'Revenus' : type === 'depenses' ? 'Dépenses' : 'Placements'}</h3>
-                <button onClick={() => ajouterCategorie(type)} className="text-blue-600">
+                <button type="button" onClick={() => ajouterCategorie(type)} className="text-blue-600">
                   <Plus className="w-5 h-5" />
                 </button>
               </div>
@@ -1188,32 +1202,32 @@ export default function BudgetDashboard() {
                       <div className="space-y-2">
                         <input type="text" value={cat.nom} onChange={(e) => modifierCategorie(type, cat.id, 'nom', e.target.value)} className="w-full px-2 py-1 text-sm border rounded" />
                         <input type="number" value={cat.budget} onChange={(e) => modifierCategorie(type, cat.id, 'budget', parseFloat(e.target.value) || 0)} className="w-full px-2 py-1 text-sm border rounded" placeholder="Budget" />
-                        <button onClick={() => setEditingCategory(null)} className="w-full bg-green-500 text-white px-2 py-1 rounded text-sm">Enregistrer</button>
+                        <button type="button" onClick={() => setEditingCategory(null)} className="w-full bg-green-500 text-white px-2 py-1 rounded text-sm">Enregistrer</button>
                       </div>
                     ) : (
                       <>
                         <div className="flex items-center gap-2 mb-2">
                           <span className="flex-1 text-sm font-medium">{cat.nom}</span>
                           <span className="text-sm text-gray-600">{cat.budget}{config.devise}</span>
-                          <button onClick={() => setEditingCategory(`${type}-${cat.id}`)} className="text-gray-400"><Edit2 className="w-4 h-4" /></button>
-                          <button onClick={() => supprimerCategorie(type, cat.id)} className="text-red-400"><Trash2 className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => setEditingCategory(`${type}-${cat.id}`)} className="text-gray-400"><Edit2 className="w-4 h-4" /></button>
+                          <button type="button" onClick={() => supprimerCategorie(type, cat.id)} className="text-red-400"><Trash2 className="w-4 h-4" /></button>
                         </div>
                         {editingSousCategories === `${type}-${cat.id}` ? (
                           <div className="space-y-1">
                             {cat.sousCategories.map((sc, idx) => (
                               <div key={idx} className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded text-xs">
                                 <span className="flex-1">{sc}</span>
-                                <button onClick={() => supprimerSousCategorie(type, cat.id, sc)} className="text-red-400"><X className="w-3 h-3" /></button>
+                                <button type="button" onClick={() => supprimerSousCategorie(type, cat.id, sc)} className="text-red-400"><X className="w-3 h-3" /></button>
                               </div>
                             ))}
                             <div className="flex gap-1">
                               <input type="text" value={newSousCategorie} onChange={(e) => setNewSousCategorie(e.target.value)} placeholder="Nouvelle sous-catégorie" className="flex-1 px-2 py-1 text-xs border rounded" />
-                              <button onClick={() => ajouterSousCategorie(type, cat.id)} className="bg-blue-500 text-white px-2 py-1 rounded text-xs">+</button>
+                              <button type="button" onClick={() => ajouterSousCategorie(type, cat.id)} className="bg-blue-500 text-white px-2 py-1 rounded text-xs">+</button>
                             </div>
-                            <button onClick={() => setEditingSousCategories(null)} className="w-full text-xs text-gray-600 mt-1">Fermer</button>
+                            <button type="button" onClick={() => setEditingSousCategories(null)} className="w-full text-xs text-gray-600 mt-1">Fermer</button>
                           </div>
                         ) : (
-                          <button onClick={() => setEditingSousCategories(`${type}-${cat.id}`)} className="text-xs text-blue-600 hover:underline">
+                          <button type="button" onClick={() => setEditingSousCategories(`${type}-${cat.id}`)} className="text-xs text-blue-600 hover:underline">
                             {cat.sousCategories.length} sous-catégorie(s) →
                           </button>
                         )}
@@ -1229,7 +1243,7 @@ export default function BudgetDashboard() {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-800">Mes comptes bancaires</h2>
-            <button onClick={() => setShowAddCompte(true)} className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+            <button type="button" onClick={() => setShowAddCompte(true)} className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Ajouter
             </button>
@@ -1249,8 +1263,8 @@ export default function BudgetDashboard() {
                     {compte.locked && <p className="text-xs text-orange-600">Solde verrouillé (transactions existantes)</p>}
                     <input type="color" value={compte.couleur} onChange={(e) => modifierCompte(compte.id, 'couleur', e.target.value)} className="w-full h-10 px-2 py-1 border rounded-lg" />
                     <div className="flex gap-2">
-                      <button onClick={() => setEditingCompte(null)} className="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg">Enregistrer</button>
-                      <button onClick={() => setEditingCompte(null)} className="px-4 py-2 border rounded-lg">Annuler</button>
+                      <button type="button" onClick={() => setEditingCompte(null)} className="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg">Enregistrer</button>
+                      <button type="button" onClick={() => setEditingCompte(null)} className="px-4 py-2 border rounded-lg">Annuler</button>
                     </div>
                   </div>
                 ) : (
@@ -1270,9 +1284,9 @@ export default function BudgetDashboard() {
                         {compteActif === compte.id && <div className="text-xs text-green-600 font-medium">✓ Actif</div>}
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => setCompteActif(compte.id)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><CreditCard className="w-4 h-4" /></button>
-                        <button onClick={() => setEditingCompte(compte.id)} className="p-2 text-gray-500 hover:bg-gray-50 rounded-lg"><Edit2 className="w-4 h-4" /></button>
-                        <button onClick={() => supprimerCompte(compte.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => setCompteActif(compte.id)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><CreditCard className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => setEditingCompte(compte.id)} className="p-2 text-gray-500 hover:bg-gray-50 rounded-lg"><Edit2 className="w-4 h-4" /></button>
+                        <button type="button" onClick={() => supprimerCompte(compte.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
                   </div>
@@ -1285,7 +1299,7 @@ export default function BudgetDashboard() {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-800">Transactions récurrentes</h2>
-            <button onClick={() => setShowAddRecurrente(true)} className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+            <button type="button" onClick={() => setShowAddRecurrente(true)} className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Ajouter
             </button>
@@ -1302,8 +1316,8 @@ export default function BudgetDashboard() {
                     </select>
                     <input type="number" min="1" max="31" value={tr.jour} onChange={(e) => modifierTransactionRecurrente(tr.id, 'jour', parseInt(e.target.value))} className="px-2 py-1 border rounded text-sm" />
                     <div className="flex gap-1">
-                      <button onClick={() => setEditingRecurrente(null)} className="flex-1 bg-green-500 text-white px-2 py-1 rounded text-xs">OK</button>
-                      <button onClick={() => supprimerTransactionRecurrente(tr.id)} className="bg-red-500 text-white px-2 py-1 rounded text-xs"><Trash2 className="w-3 h-3" /></button>
+                      <button type="button" onClick={() => setEditingRecurrente(null)} className="flex-1 bg-green-500 text-white px-2 py-1 rounded text-xs">OK</button>
+                      <button type="button" onClick={() => supprimerTransactionRecurrente(tr.id)} className="bg-red-500 text-white px-2 py-1 rounded text-xs"><Trash2 className="w-3 h-3" /></button>
                     </div>
                   </div>
                 ) : (
@@ -1316,7 +1330,7 @@ export default function BudgetDashboard() {
                     <div className={`font-bold ${tr.montant > 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {tr.montant > 0 ? '+' : ''}{tr.montant}{config.devise}
                     </div>
-                    <button onClick={() => setEditingRecurrente(tr.id)} className="text-gray-400 hover:text-gray-600"><Edit2 className="w-4 h-4" /></button>
+                    <button type="button" onClick={() => setEditingRecurrente(tr.id)} className="text-gray-400 hover:text-gray-600"><Edit2 className="w-4 h-4" /></button>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" checked={tr.actif} onChange={(e) => modifierTransactionRecurrente(tr.id, 'actif', e.target.checked)} className="sr-only peer" />
                       <div className="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -1331,7 +1345,7 @@ export default function BudgetDashboard() {
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-800">Tags personnalisés</h2>
-            <button onClick={() => setShowAddTag(true)} className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+            <button type="button" onClick={() => setShowAddTag(true)} className="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Ajouter
             </button>
@@ -1340,7 +1354,7 @@ export default function BudgetDashboard() {
             {tagsDisponibles.map(tag => (
               <div key={tag} className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-full">
                 <span className="text-sm">#{tag}</span>
-                <button onClick={() => supprimerTag(tag)} className="text-red-500 hover:text-red-700">
+                <button type="button" onClick={() => supprimerTag(tag)} className="text-red-500 hover:text-red-700">
                   <X className="w-3 h-3" />
                 </button>
               </div>
@@ -1407,6 +1421,7 @@ export default function BudgetDashboard() {
               </div>
 
               <button 
+                type="button"
                 onClick={() => showNotification('success', 'Profil enregistré')}
                 className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg flex items-center gap-2"
               >
@@ -1427,6 +1442,7 @@ export default function BudgetDashboard() {
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Tableau de bord</h1>
           <div className="flex flex-wrap items-center gap-2 md:gap-4">
             <button
+              type="button"
               onClick={() => setVueConsolidee(!vueConsolidee)}
               className={`px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 text-sm ${vueConsolidee ? 'bg-purple-500 text-white' : 'bg-white border border-gray-300'}`}
             >
@@ -1485,582 +1501,4 @@ export default function BudgetDashboard() {
             )}
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
-            <div className="text-green-600 font-semibold text-sm md:text-base mb-2">Revenus</div>
-            <div className="text-2xl md:text-3xl font-bold text-gray-800">{totalRevenus.toFixed(0)} {config.devise}</div>
-            <div className="text-xs text-gray-500 mt-1">{moisDisponibles[selectedMonth]}</div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
-            <div className="text-red-600 font-semibold text-sm md:text-base mb-2">Dépenses</div>
-            <div className="text-2xl md:text-3xl font-bold text-gray-800">{totalDepenses.toFixed(0)} {config.devise}</div>
-            <div className="text-xs text-gray-500 mt-1">{moisDisponibles[selectedMonth]}</div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
-            <div className="text-blue-600 font-semibold text-sm md:text-base mb-2">Épargne</div>
-            <div className="text-2xl md:text-3xl font-bold text-gray-800">{totalPlacements.toFixed(0)} {config.devise}</div>
-            <div className="text-xs text-gray-500 mt-1">{pourcentageEpargne}%</div>
-          </div>
-        </div>
-
-        {predictions && (
-          <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg shadow-md p-4 md:p-6 mb-6">
-            <h3 className="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Prédictions {selectedYear}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-              <div>
-                <div className="text-sm opacity-90">Solde prévu</div>
-                <div className="text-xl md:text-2xl font-bold">{predictions.soldePrevuFinAnnee.toFixed(0)} {config.devise}</div>
-              </div>
-              <div>
-                <div className="text-sm opacity-90">Épargne prévue</div>
-                <div className="text-xl md:text-2xl font-bold">{predictions.epargnePrevueFinAnnee.toFixed(0)} {config.devise}</div>
-              </div>
-              <div>
-                <div className="text-sm opacity-90">Taux moyen</div>
-                <div className="text-xl md:text-2xl font-bold">{predictions.tauxEpargne}%</div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6">
-          <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
-            <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">Budget vs Réel</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={budgetVsReelData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="categorie" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
-                <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip />
-                <Bar dataKey="budget" fill="#cbd5e1" name="Budget" />
-                <Bar dataKey="reel" fill="#ef4444" name="Réel" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
-            <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">Placements</h3>
-            {placementsData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={placementsData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {placementsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex items-center justify-center h-64 text-gray-400">
-                <p className="text-sm">Aucun placement</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
-          <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-4">Évolution {selectedYear}</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={evolutionData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="mois" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
-              <Area type="monotone" dataKey="revenus" stackId="1" stroke="#22c55e" fill="#22c55e" fillOpacity={0.6} name="Revenus" />
-              <Area type="monotone" dataKey="depenses" stackId="2" stroke="#ef4444" fill="#ef4444" fillOpacity={0.6} name="Dépenses" />
-              <Area type="monotone" dataKey="epargne" stackId="3" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} name="Épargne" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="flex h-screen bg-gray-900">
-      <ToastContainer />
-      
-      <div className={`${sidebarOpen ? 'w-64' : 'w-0'} md:w-64 bg-gray-800 text-white flex flex-col transition-all duration-300 overflow-hidden md:overflow-visible`}>
-        <div className="p-6 border-b border-gray-700">
-          <div className="w-20 h-20 bg-gray-600 rounded-full mx-auto mb-3 overflow-hidden flex items-center justify-center">
-            {profil.photo ? (
-              <img src={profil.photo} alt="Profil" className="w-full h-full object-cover" />
-            ) : (
-              <User className="w-10 h-10 text-gray-400" />
-            )}
-          </div>
-          <div className="text-center text-sm text-gray-300">{profil.nom}</div>
-          <div className="text-center text-xs text-gray-500 mt-1">{profil.email}</div>
-        </div>
-
-        <nav className="flex-1 p-4 overflow-y-auto">
-          <button
-            onClick={() => setCurrentView('dashboard')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
-              currentView === 'dashboard' ? 'bg-orange-500 text-white' : 'text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            <Home className="w-5 h-5" />
-            Tableau de bord
-          </button>
-
-          <button
-            onClick={() => setCurrentView('objectifs')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
-              currentView === 'objectifs' ? 'bg-orange-500 text-white' : 'text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            <Target className="w-5 h-5" />
-            Objectifs
-          </button>
-          
-          <button
-            onClick={() => setCurrentView('transactions')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
-              currentView === 'transactions' ? 'bg-orange-500 text-white' : 'text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            <FileText className="w-5 h-5" />
-            Transactions
-          </button>
-
-          <button
-            onClick={() => setCurrentView('config')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
-              currentView === 'config' ? 'bg-orange-500 text-white' : 'text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            <Settings className="w-5 h-5" />
-            Configuration
-          </button>
-
-          <button
-            onClick={() => setCurrentView('profil')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
-              currentView === 'profil' ? 'bg-orange-500 text-white' : 'text-gray-300 hover:bg-gray-700'
-            }`}
-          >
-            <User className="w-5 h-5" />
-            Mon Profil
-          </button>
-
-          <div className="mt-6 pt-6 border-t border-gray-700">
-            <div className="flex items-center justify-between px-4 mb-2">
-              <div className="text-xs text-gray-400">MES COMPTES</div>
-              <button
-                onClick={() => {
-                  setCurrentView('config');
-                  setShowAddCompte(true);
-                }}
-                className="text-orange-500 hover:text-orange-400"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-            {comptes.map(compte => {
-              const typeCompte = typesComptes.find(t => t.value === compte.type);
-              const soldeCompte = getSoldeCompte(compte.id);
-              
-              return (
-                <button
-                  key={compte.id}
-                  onClick={() => {
-                    setCompteActif(compte.id);
-                    setVueConsolidee(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg mb-1 transition-colors ${
-                    compteActif === compte.id && !vueConsolidee ? 'bg-gray-700 text-white' : 'text-gray-400 hover:bg-gray-700'
-                  }`}
-                >
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
-                    style={{ backgroundColor: compte.couleur }}
-                  >
-                    {typeCompte?.icon}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="text-sm font-medium truncate">{compte.nom}</div>
-                    <div className="text-xs opacity-70">{soldeCompte.toFixed(0)}{config.devise}</div>
-                  </div>
-                  {compteActif === compte.id && !vueConsolidee && (
-                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-4">
-            <button
-              onClick={() => setShowTransfert(true)}
-              className="w-full flex items-center gap-3 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <ArrowLeftRight className="w-4 h-4" />
-              Virement
-            </button>
-          </div>
-        </nav>
-
-        {alertesActives.length > 0 && (
-          <div className="p-4 border-t border-gray-700">
-            <div className="bg-red-500 text-white px-3 py-2 rounded-lg text-sm flex items-center gap-2">
-              <Bell className="w-4 h-4" />
-              {alertesActives.length} alerte{alertesActives.length > 1 ? 's' : ''}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white p-4 shadow-lg">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="md:hidden p-2 hover:bg-white/20 rounded-lg"
-              >
-                <Settings className="w-5 h-5" />
-              </button>
-              <h1 className="text-xl md:text-2xl font-bold">Dashboard Budgétaire Pro</h1>
-            </div>
-            <div className="text-sm text-right">
-              <div className="font-medium">{moisDisponibles[selectedMonth]} {selectedYear}</div>
-              <div className="text-xs opacity-90">
-                {vueConsolidee ? 'Vue consolidée' : comptes.find(c => c.id === compteActif)?.nom}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {currentView === 'dashboard' && <DashboardView />}
-        {currentView === 'profil' && <ProfilView />}
-        {currentView === 'objectifs' && <ObjectifsView />}
-        {currentView === 'transactions' && <TransactionsView />}
-        {currentView === 'config' && <ConfigView />}
-      </div>
-
-      {showTransfert && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Virement entre comptes</h3>
-              <button onClick={() => setShowTransfert(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Depuis</label>
-                <select
-                  value={transfert.de}
-                  onChange={(e) => setTransfert({ ...transfert, de: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                >
-                  {comptes.map(c => (
-                    <option key={c.id} value={c.id}>{c.nom} ({getSoldeCompte(c.id).toFixed(2)}{config.devise})</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Vers</label>
-                <select
-                  value={transfert.vers || ''}
-                  onChange={(e) => setTransfert({ ...transfert, vers: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                >
-                  <option value="">Sélectionner...</option>
-                  {comptes.filter(c => c.id !== transfert.de).map(c => (
-                    <option key={c.id} value={c.id}>{c.nom}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Montant ({config.devise})</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={transfert.montant}
-                  onChange={(e) => setTransfert({ ...transfert, montant: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Libellé</label>
-                <input
-                  type="text"
-                  value={transfert.libelle}
-                  onChange={(e) => setTransfert({ ...transfert, libelle: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg"
-                />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => setShowTransfert(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={creerTransfert}
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-                >
-                  Transférer
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAddObjectif && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Nouvel objectif d'épargne</h3>
-              <button onClick={() => setShowAddObjectif(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Nom de l'objectif"
-                value={newObjectif.nom}
-                onChange={(e) => setNewObjectif({ ...newObjectif, nom: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              <input
-                type="number"
-                placeholder="Montant cible"
-                value={newObjectif.montantCible}
-                onChange={(e) => setNewObjectif({ ...newObjectif, montantCible: parseFloat(e.target.value) })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              <input
-                type="number"
-                placeholder="Montant actuel"
-                value={newObjectif.montantActuel}
-                onChange={(e) => setNewObjectif({ ...newObjectif, montantActuel: parseFloat(e.target.value) })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              <input
-                type="date"
-                value={newObjectif.dateObjectif}
-                onChange={(e) => setNewObjectif({ ...newObjectif, dateObjectif: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              <input
-                type="text"
-                placeholder="Catégorie"
-                value={newObjectif.categorie}
-                onChange={(e) => setNewObjectif({ ...newObjectif, categorie: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowAddObjectif(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={ajouterObjectif}
-                  className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg"
-                >
-                  Ajouter
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAddCompte && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Nouveau compte</h3>
-              <button onClick={() => setShowAddCompte(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Nom du compte"
-                value={newCompte.nom}
-                onChange={(e) => setNewCompte({ ...newCompte, nom: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              <select
-                value={newCompte.type}
-                onChange={(e) => setNewCompte({ ...newCompte, type: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              >
-                {typesComptes.map(type => (
-                  <option key={type.value} value={type.value}>{type.icon} {type.label}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                step="0.01"
-                placeholder="Solde initial"
-                value={newCompte.soldeInitial}
-                onChange={(e) => setNewCompte({ ...newCompte, soldeInitial: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              <input
-                type="color"
-                value={newCompte.couleur}
-                onChange={(e) => setNewCompte({ ...newCompte, couleur: e.target.value })}
-                className="w-full h-10 px-2 py-1 border rounded-lg"
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowAddCompte(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={ajouterCompte}
-                  className="flex-1 bg-orange-500 text-white px-4 py-2 rounded-lg"
-                >
-                  Créer
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAddTag && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Nouveau tag</h3>
-              <button onClick={() => setShowAddTag(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Nom du tag"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowAddTag(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={ajouterTag}
-                  className="flex-1 bg-indigo-500 text-white px-4 py-2 rounded-lg"
-                >
-                  Ajouter
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showAddRecurrente && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Nouvelle transaction récurrente</h3>
-              <button onClick={() => setShowAddRecurrente(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Libellé"
-                value={newRecurrente.libelle}
-                onChange={(e) => setNewRecurrente({ ...newRecurrente, libelle: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              <select
-                value={newRecurrente.type}
-                onChange={(e) => setNewRecurrente({ ...newRecurrente, type: e.target.value, categorie: '' })}
-                className="w-full px-3 py-2 border rounded-lg"
-              >
-                <option value="DÉPENSES">Dépenses</option>
-                <option value="REVENUS">Revenus</option>
-                <option value="PLACEMENTS">Placements</option>
-              </select>
-              <select
-                value={newRecurrente.categorie}
-                onChange={(e) => setNewRecurrente({ ...newRecurrente, categorie: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg"
-              >
-                <option value="">Sélectionner une catégorie</option>
-                {newRecurrente.type === 'DÉPENSES' && categories.depenses.map(cat => (
-                  <option key={cat.id} value={cat.nom}>{cat.nom}</option>
-                ))}
-                {newRecurrente.type === 'REVENUS' && categories.revenus.map(cat => (
-                  <option key={cat.id} value={cat.nom}>{cat.nom}</option>
-                ))}
-                {newRecurrente.type === 'PLACEMENTS' && categories.placements.map(cat => (
-                  <option key={cat.id} value={cat.nom}>{cat.nom}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                step="0.01"
-                placeholder="Montant"
-                value={newRecurrente.montant}
-                onChange={(e) => setNewRecurrente({ ...newRecurrente, montant: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              <input
-                type="number"
-                min="1"
-                max="31"
-                placeholder="Jour du mois (1-31)"
-                value={newRecurrente.jour}
-                onChange={(e) => setNewRecurrente({ ...newRecurrente, jour: parseInt(e.target.value) || 1 })}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowAddRecurrente(false)}
-                  className="flex-1 px-4 py-2 border rounded-lg"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={ajouterTransactionRecurrente}
-                  className="flex-1 bg-purple-500 text-white px-4 py-2 rounded-lg"
-                >
-                  Créer
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+          <div className="bg-white rounded-lg shadow
