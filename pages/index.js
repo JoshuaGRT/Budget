@@ -1,10 +1,16 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { Menu, Home, CreditCard, Target, Settings, User, Plus, TrendingUp, TrendingDown, Wallet, Calendar, Trash2, Download, Upload, Search, Sun, Moon, BarChart3, AlertCircle, CheckCircle, X } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // Modal composants séparés pour éviter les re-renders
-const ModalCompte = ({ show, onClose, onCreate, darkMode, typesComptes, devise }) => {
-  const [data, setData] = useState({ nom: '', type: 'courant', soldeInitial: 0, couleur: '#3b82f6' });
+const ModalCompte = memo(({ show, onClose, onCreate, darkMode, typesComptes, devise }) => {
+  const [data, setData] = useState({ nom: '', type: 'courant', soldeInitial: '', couleur: '#3b82f6' });
+  
+  useEffect(() => {
+    if (!show) {
+      setData({ nom: '', type: 'courant', soldeInitial: '', couleur: '#3b82f6' });
+    }
+  }, [show]);
   
   if (!show) return null;
   
@@ -12,8 +18,7 @@ const ModalCompte = ({ show, onClose, onCreate, darkMode, typesComptes, devise }
   const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
   
   const handleSubmit = () => {
-    onCreate(data);
-    setData({ nom: '', type: 'courant', soldeInitial: 0, couleur: '#3b82f6' });
+    onCreate({ ...data, soldeInitial: parseFloat(data.soldeInitial) || 0 });
   };
   
   return (
@@ -52,8 +57,9 @@ const ModalCompte = ({ show, onClose, onCreate, darkMode, typesComptes, devise }
               type="number" 
               step="0.01" 
               value={data.soldeInitial} 
-              onChange={(e) => setData({ ...data, soldeInitial: parseFloat(e.target.value) || 0 })} 
+              onChange={(e) => setData({ ...data, soldeInitial: e.target.value })} 
               className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+              placeholder="0.00"
             />
           </div>
           <div>
@@ -73,10 +79,32 @@ const ModalCompte = ({ show, onClose, onCreate, darkMode, typesComptes, devise }
       </div>
     </div>
   );
-};
+});
 
-const ModalTransaction = ({ show, onClose, onCreate, darkMode, comptes, categories, devise }) => {
-  const [data, setData] = useState({ date: new Date().toISOString().split('T')[0], libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', compteId: comptes[0]?.id || 1, tags: [] });
+const ModalTransaction = memo(({ show, onClose, onCreate, darkMode, comptes, categories, devise }) => {
+  const [data, setData] = useState({ 
+    date: new Date().toISOString().split('T')[0], 
+    libelle: '', 
+    montant: '', 
+    type: 'DÉPENSES', 
+    categorie: '', 
+    compteId: comptes[0]?.id || 1, 
+    tags: [] 
+  });
+  
+  useEffect(() => {
+    if (!show) {
+      setData({ 
+        date: new Date().toISOString().split('T')[0], 
+        libelle: '', 
+        montant: '', 
+        type: 'DÉPENSES', 
+        categorie: '', 
+        compteId: comptes[0]?.id || 1, 
+        tags: [] 
+      });
+    }
+  }, [show, comptes]);
   
   if (!show) return null;
   
@@ -84,8 +112,7 @@ const ModalTransaction = ({ show, onClose, onCreate, darkMode, comptes, categori
   const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
   
   const handleSubmit = () => {
-    onCreate(data);
-    setData({ date: new Date().toISOString().split('T')[0], libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', compteId: comptes[0]?.id || 1, tags: [] });
+    onCreate({ ...data, montant: parseFloat(data.montant) || 0 });
   };
   
   return (
@@ -123,8 +150,9 @@ const ModalTransaction = ({ show, onClose, onCreate, darkMode, comptes, categori
               type="number" 
               step="0.01" 
               value={data.montant} 
-              onChange={(e) => setData({ ...data, montant: parseFloat(e.target.value) || 0 })} 
+              onChange={(e) => setData({ ...data, montant: e.target.value })} 
               className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+              placeholder="0.00"
             />
           </div>
           <div>
@@ -170,10 +198,16 @@ const ModalTransaction = ({ show, onClose, onCreate, darkMode, comptes, categori
       </div>
     </div>
   );
-};
+});
 
-const ModalObjectif = ({ show, onClose, onCreate, darkMode, devise }) => {
-  const [data, setData] = useState({ nom: '', montantCible: 0, montantActuel: 0, dateObjectif: '', categorie: '' });
+const ModalObjectif = memo(({ show, onClose, onCreate, darkMode, devise }) => {
+  const [data, setData] = useState({ nom: '', montantCible: '', montantActuel: '', dateObjectif: '', categorie: '' });
+  
+  useEffect(() => {
+    if (!show) {
+      setData({ nom: '', montantCible: '', montantActuel: '', dateObjectif: '', categorie: '' });
+    }
+  }, [show]);
   
   if (!show) return null;
   
@@ -181,8 +215,11 @@ const ModalObjectif = ({ show, onClose, onCreate, darkMode, devise }) => {
   const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
   
   const handleSubmit = () => {
-    onCreate(data);
-    setData({ nom: '', montantCible: 0, montantActuel: 0, dateObjectif: '', categorie: '' });
+    onCreate({
+      ...data,
+      montantCible: parseFloat(data.montantCible) || 0,
+      montantActuel: parseFloat(data.montantActuel) || 0
+    });
   };
   
   return (
@@ -210,8 +247,9 @@ const ModalObjectif = ({ show, onClose, onCreate, darkMode, devise }) => {
             <input 
               type="number" 
               value={data.montantCible} 
-              onChange={(e) => setData({ ...data, montantCible: parseFloat(e.target.value) || 0 })} 
+              onChange={(e) => setData({ ...data, montantCible: e.target.value })} 
               className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
+              placeholder="0.00"
             />
           </div>
           <div>
@@ -219,8 +257,9 @@ const ModalObjectif = ({ show, onClose, onCreate, darkMode, devise }) => {
             <input 
               type="number" 
               value={data.montantActuel} 
-              onChange={(e) => setData({ ...data, montantActuel: parseFloat(e.target.value) || 0 })} 
+              onChange={(e) => setData({ ...data, montantActuel: e.target.value })} 
               className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-blue-500 outline-none`} 
+              placeholder="0.00"
             />
           </div>
           <div>
@@ -250,10 +289,16 @@ const ModalObjectif = ({ show, onClose, onCreate, darkMode, devise }) => {
       </div>
     </div>
   );
-};
+});
 
-const ModalRecurrente = ({ show, onClose, onCreate, darkMode, categories, devise }) => {
-  const [data, setData] = useState({ libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', jour: 1 });
+const ModalBudget = memo(({ show, onClose, onCreate, darkMode, categories, devise }) => {
+  const [data, setData] = useState({ categorie: '', montantMax: '', mois: new Date().toISOString().slice(0, 7) });
+  
+  useEffect(() => {
+    if (!show) {
+      setData({ categorie: '', montantMax: '', mois: new Date().toISOString().slice(0, 7) });
+    }
+  }, [show]);
   
   if (!show) return null;
   
@@ -261,8 +306,75 @@ const ModalRecurrente = ({ show, onClose, onCreate, darkMode, categories, devise
   const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
   
   const handleSubmit = () => {
-    onCreate(data);
-    setData({ libelle: '', montant: 0, type: 'DÉPENSES', categorie: '', jour: 1 });
+    onCreate({ ...data, montantMax: parseFloat(data.montantMax) || 0 });
+  };
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold">Nouveau budget</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Catégorie</label>
+            <select 
+              value={data.categorie} 
+              onChange={(e) => setData({ ...data, categorie: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
+            >
+              <option value="">Sélectionner...</option>
+              {categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Montant maximum ({devise})</label>
+            <input 
+              type="number" 
+              value={data.montantMax} 
+              onChange={(e) => setData({ ...data, montantMax: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+              placeholder="0.00"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Mois</label>
+            <input 
+              type="month" 
+              value={data.mois} 
+              onChange={(e) => setData({ ...data, mois: e.target.value })} 
+              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+            />
+          </div>
+        </div>
+        <div className="flex gap-2 mt-6">
+          <button type="button" onClick={handleSubmit} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">Créer</button>
+          <button type="button" onClick={onClose} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const ModalRecurrente = memo(({ show, onClose, onCreate, darkMode, categories, devise }) => {
+  const [data, setData] = useState({ libelle: '', montant: '', type: 'DÉPENSES', categorie: '', jour: 1 });
+  
+  useEffect(() => {
+    if (!show) {
+      setData({ libelle: '', montant: '', type: 'DÉPENSES', categorie: '', jour: 1 });
+    }
+  }, [show]);
+  
+  if (!show) return null;
+  
+  const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
+  
+  const handleSubmit = () => {
+    onCreate({ ...data, montant: parseFloat(data.montant) || 0 });
   };
   
   return (
@@ -291,8 +403,9 @@ const ModalRecurrente = ({ show, onClose, onCreate, darkMode, categories, devise
               type="number" 
               step="0.01" 
               value={data.montant} 
-              onChange={(e) => setData({ ...data, montant: parseFloat(e.target.value) || 0 })} 
+              onChange={(e) => setData({ ...data, montant: e.target.value })} 
               className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-purple-500 outline-none`} 
+              placeholder="0.00"
             />
           </div>
           <div>
@@ -339,69 +452,78 @@ const ModalRecurrente = ({ show, onClose, onCreate, darkMode, categories, devise
       </div>
     </div>
   );
-};
+});
 
-const ModalBudget = ({ show, onClose, onCreate, darkMode, categories, devise }) => {
-  const [data, setData] = useState({ categorie: '', montantMax: 0, mois: new Date().toISOString().slice(0, 7) });
-  
-  if (!show) return null;
-  
+// Composants de vue séparés et mémorisés
+const TransactionsSearchBar = memo(({ searchTerm, onSearchChange, filtreType, onTypeChange, filtreCategorie, onCategorieChange, filtreCompte, onCompteChange, categories, comptes, darkMode }) => {
   const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
   const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
   
-  const handleSubmit = () => {
-    onCreate(data);
-    setData({ categorie: '', montantMax: 0, mois: new Date().toISOString().slice(0, 7) });
-  };
-  
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-      <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold">Nouveau budget</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="w-5 h-5" />
-          </button>
+    <div className={`${cardClass} p-4 rounded-2xl shadow-lg mb-6 border ${borderClass}`}>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+          <input 
+            type="text" 
+            value={searchTerm} 
+            onChange={(e) => onSearchChange(e.target.value)} 
+            placeholder="Rechercher..." 
+            className={`w-full pl-10 px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+          />
         </div>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Catégorie</label>
-            <select 
-              value={data.categorie} 
-              onChange={(e) => setData({ ...data, categorie: e.target.value })} 
-              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
-            >
-              <option value="">Sélectionner...</option>
-              {categories.depenses.map(cat => (<option key={cat.id} value={cat.nom}>{cat.nom}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Montant maximum ({devise})</label>
-            <input 
-              type="number" 
-              value={data.montantMax} 
-              onChange={(e) => setData({ ...data, montantMax: parseFloat(e.target.value) || 0 })} 
-              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Mois</label>
-            <input 
-              type="month" 
-              value={data.mois} 
-              onChange={(e) => setData({ ...data, mois: e.target.value })} 
-              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
-            />
-          </div>
-        </div>
-        <div className="flex gap-2 mt-6">
-          <button type="button" onClick={handleSubmit} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">Créer</button>
-          <button type="button" onClick={onClose} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
-        </div>
+        <select value={filtreType} onChange={(e) => onTypeChange(e.target.value)} className={`px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
+          <option value="TOUS">Tous les types</option>
+          <option value="REVENUS">Revenus</option>
+          <option value="DÉPENSES">Dépenses</option>
+          <option value="PLACEMENTS">Placements</option>
+        </select>
+        <select value={filtreCategorie} onChange={(e) => onCategorieChange(e.target.value)} className={`px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
+          <option value="">Toutes les catégories</option>
+          {[...categories.depenses, ...categories.revenus, ...categories.placements].map(cat => (
+            <option key={cat.id + cat.nom} value={cat.nom}>{cat.nom}</option>
+          ))}
+        </select>
+        <select value={filtreCompte} onChange={(e) => onCompteChange(e.target.value)} className={`px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
+          <option value="">Tous les comptes</option>
+          {comptes.map(c => (
+            <option key={c.id} value={c.id}>{c.nom}</option>
+          ))}
+        </select>
       </div>
     </div>
   );
-};
+});
+
+const ProfilForm = memo(({ profil, onProfilChange, onSave, darkMode }) => {
+  const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
+  
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-1">Nom</label>
+        <input 
+          type="text" 
+          value={profil.nom} 
+          onChange={(e) => onProfilChange({ ...profil, nom: e.target.value })} 
+          className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-1">Email</label>
+        <input 
+          type="email" 
+          value={profil.email} 
+          onChange={(e) => onProfilChange({ ...profil, email: e.target.value })} 
+          className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
+        />
+      </div>
+      <button onClick={onSave} className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">
+        Enregistrer les modifications
+      </button>
+    </div>
+  );
+});
 
 const BudgetApp = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -675,6 +797,15 @@ const BudgetApp = () => {
     return { depensesMoyennes, revenusMoyens, tauxEpargne };
   }, [stats, transactions]);
   
+  // Callbacks mémorisés pour ProfilForm
+  const handleProfilChange = useCallback((newProfil) => {
+    setProfil(newProfil);
+  }, []);
+  
+  const handleProfilSave = useCallback(() => {
+    showToast('Profil mis à jour', 'success');
+  }, [showToast]);
+  
   const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#06b6d4'];
   
   const bgClass = darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100';
@@ -775,7 +906,7 @@ const BudgetApp = () => {
             {getBudgetAlerts().map(budget => {
               const catInfo = categories.depenses.find(c => c.nom === budget.categorie);
               return (
-                <div key={budget.id} className={`p-4 rounded-xl border-2 ${budget.alerte ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20' : 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'} transition-all`}>
+                <div key={budget.id} className={`p-4 rounded-xl ${darkMode ? 'bg-gray-700/50' : 'bg-gradient-to-br from-gray-50 to-gray-100'} backdrop-blur-sm transition-all hover:shadow-md border ${borderClass}`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl">{catInfo?.icon}</span>
@@ -783,26 +914,26 @@ const BudgetApp = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       {budget.alerte ? (
-                        <AlertCircle className="w-5 h-5 text-red-600" />
+                        <AlertCircle className="w-5 h-5 text-orange-500" />
                       ) : (
-                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        <CheckCircle className="w-5 h-5 text-green-500" />
                       )}
-                      <button onClick={() => supprimerBudget(budget.id)} className="text-gray-400 hover:text-red-600">
+                      <button onClick={() => supprimerBudget(budget.id)} className="text-gray-400 hover:text-red-600 transition-colors">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className={`text-sm ${mutedClass}`}>
                       {budget.depenses.toFixed(2)} / {budget.montantMax} {config.devise}
                     </span>
-                    <span className={`text-sm font-bold ${budget.alerte ? 'text-red-600' : 'text-green-600'}`}>
+                    <span className={`text-sm font-bold ${budget.alerte ? 'text-orange-500' : 'text-green-500'}`}>
                       {budget.pourcentage.toFixed(0)}%
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                  <div className={`w-full ${darkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-3 overflow-hidden`}>
                     <div 
-                      className={`h-3 rounded-full transition-all duration-500 ${budget.alerte ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-green-500 to-green-600'}`} 
+                      className={`h-3 rounded-full transition-all duration-500 ${budget.alerte ? 'bg-gradient-to-r from-orange-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-green-500'}`} 
                       style={{ width: `${Math.min(budget.pourcentage, 100)}%` }}
                     ></div>
                   </div>
@@ -850,32 +981,19 @@ const BudgetApp = () => {
         </button>
       </div>
       
-      <div className={`${cardClass} p-4 rounded-2xl shadow-lg mb-6 border ${borderClass}`}>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-            <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Rechercher..." className={`w-full pl-10 px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
-          </div>
-          <select value={filtreType} onChange={(e) => setFiltreType(e.target.value)} className={`px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
-            <option value="TOUS">Tous les types</option>
-            <option value="REVENUS">Revenus</option>
-            <option value="DÉPENSES">Dépenses</option>
-            <option value="PLACEMENTS">Placements</option>
-          </select>
-          <select value={filtreCategorie} onChange={(e) => setFiltreCategorie(e.target.value)} className={`px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
-            <option value="">Toutes les catégories</option>
-            {[...categories.depenses, ...categories.revenus, ...categories.placements].map(cat => (
-              <option key={cat.id + cat.nom} value={cat.nom}>{cat.nom}</option>
-            ))}
-          </select>
-          <select value={filtreCompte} onChange={(e) => setFiltreCompte(e.target.value)} className={`px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700 text-white' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
-            <option value="">Tous les comptes</option>
-            {comptes.map(c => (
-              <option key={c.id} value={c.id}>{c.nom}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <TransactionsSearchBar 
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        filtreType={filtreType}
+        onTypeChange={setFiltreType}
+        filtreCategorie={filtreCategorie}
+        onCategorieChange={setFiltreCategorie}
+        filtreCompte={filtreCompte}
+        onCompteChange={setFiltreCompte}
+        categories={categories}
+        comptes={comptes}
+        darkMode={darkMode}
+      />
       
       <div className={`${cardClass} rounded-2xl shadow-lg overflow-hidden border ${borderClass}`}>
         <table className="w-full">
@@ -1029,19 +1147,12 @@ const BudgetApp = () => {
           </div>
         </div>
         
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Nom</label>
-            <input type="text" value={profil.nom} onChange={(e) => setProfil({...profil, nom: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <input type="email" value={profil.email} onChange={(e) => setProfil({...profil, email: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} />
-          </div>
-          <button onClick={() => showToast('Profil mis à jour', 'success')} className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">
-            Enregistrer les modifications
-          </button>
-        </div>
+        <ProfilForm 
+          profil={profil}
+          onProfilChange={handleProfilChange}
+          onSave={handleProfilSave}
+          darkMode={darkMode}
+        />
       </div>
     </div>
   );
