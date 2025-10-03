@@ -189,7 +189,45 @@ const ModalConfigDashboard = memo(({ show, onClose, onSave, darkMode, currentCon
   );
 });
 
-// Modal Compte
+// Modal Edit Compte
+const ModalEditCompte = memo(({ show, onClose, onUpdate, darkMode, compte, typesComptes, devise }) => {
+  const [data, setData] = useState({ nom: '', type: '', soldeInitial: '' });
+  useEffect(() => { if (show && compte) setData({ nom: compte.nom, type: compte.type, soldeInitial: compte.soldeInitial }); }, [show, compte]);
+  if (!show) return null;
+  const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold">Modifier le compte</h3>
+          <button onClick={onClose}><X className="w-5 h-5" /></button>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Nom du compte</label>
+            <input type="text" value={data.nom} onChange={(e) => setData({...data, nom: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Type de compte</label>
+            <select value={data.type} onChange={(e) => setData({...data, type: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
+              {typesComptes.map(t => (<option key={t.value} value={t.value}>{t.icon} {t.label}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Solde initial ({devise})</label>
+            <input type="number" step="0.01" value={data.soldeInitial} onChange={(e) => setData({...data, soldeInitial: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+          </div>
+        </div>
+        <div className="flex gap-2 mt-6">
+          <button onClick={() => onUpdate({...data, soldeInitial: parseFloat(data.soldeInitial) || 0})} className="flex-1 bg-orange-500 text-white px-4 py-3 rounded-xl">Modifier</button>
+          <button onClick={onClose} className="flex-1 bg-gray-300 px-4 py-3 rounded-xl">Annuler</button>
+        </div>
+      </div>
+    </div>
+  );
+});
 const ModalCompte = memo(({ show, onClose, onCreate, darkMode, typesComptes, devise }) => {
   const [data, setData] = useState({ nom: '', type: 'courant', soldeInitial: '' });
   useEffect(() => { if (!show) setData({ nom: '', type: 'courant', soldeInitial: '' }); }, [show]);
@@ -419,6 +457,8 @@ const BudgetApp = () => {
   const [showImportCSV, setShowImportCSV] = useState(false);
   const [showConfigDashboard, setShowConfigDashboard] = useState(false);
   const [showAddCompte, setShowAddCompte] = useState(false);
+  const [showEditCompte, setShowEditCompte] = useState(false);
+  const [compteToEdit, setCompteToEdit] = useState(null);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [showAddObjectif, setShowAddObjectif] = useState(false);
   const [showAddBudget, setShowAddBudget] = useState(false);
@@ -426,6 +466,7 @@ const BudgetApp = () => {
   const [showEditCategorie, setShowEditCategorie] = useState(false);
   const [categorieType, setCategorieType] = useState('depenses');
   const [categorieToEdit, setCategorieToEdit] = useState(null);
+  const [moisSelectionnes, setMoisSelectionnes] = useState([]);
   
   const [dashboardConfig, setDashboardConfig] = useState({
     statsCards: true,
@@ -622,6 +663,45 @@ const BudgetApp = () => {
     showToast('Transaction supprimée', 'success');
   }, [showToast]);
   
+  const modifierCompte = useCallback((data) => {
+    if (!data.nom || !compteToEdit) return showToast('Données invalides', 'error');
+    setComptes(prev => prev.map(c => c.id === compteToEdit.id ? { ...c, ...data } : c));
+    setShowEditCompte(false);
+    setCompteToEdit(null);
+    showToast('Compte modifié', 'success');
+  }, [compteToEdit, showToast]);
+  
+  const supprimerCompte = useCallback((id) => {
+    setComptes(prev => prev.filter(c => c.id !== id));
+    showToast('Compte supprimé', 'success');
+  }, [showToast]);
+  
+  const getMoisDisponibles = useCallback(() => {
+    const mois = new Set();
+    transactions.forEach(t => {
+      mois.add(t.date.slice(0, 7));
+    });
+    return Array.from(mois).sort().reverse();
+  }, [transactions]);
+  
+  const getDataMoisSelectionnes = useCallback(() => {
+    if (moisSelectionnes.length === 0) return [];
+    return moisSelectionnes.map(mois => {
+      const transMois = transactions.filter(t => t.date.startsWith(mois));
+      return {
+        mois,
+        revenus: transMois.filter(t => t.montant > 0).reduce((sum, t) => sum + t.montant, 0),
+        depenses: Math.abs(transMois.filter(t => t.montant < 0).reduce((sum, t) => sum + t.montant, 0))
+      };
+    });
+  }, [transactions, moisSelectionnes]);
+  
+  const toggleMois = useCallback((mois) => {
+    setMoisSelectionnes(prev => 
+      prev.includes(mois) ? prev.filter(m => m !== mois) : [...prev, mois]
+    );
+  }, []);
+  
   useEffect(() => {
     document.body.className = darkMode ? 'dark' : '';
   }, [darkMode]);
@@ -723,37 +803,72 @@ const BudgetApp = () => {
             </div>
           )}
           
-          {vueComparative !== 'none' && (
+          {vueComparative === 'annuelle' && (
             <div className={`${cardClass} p-6 rounded-2xl shadow-lg mb-6 border ${borderClass}`}>
-              <h3 className="text-xl font-bold mb-4">
-                {vueComparative === 'annuelle' ? 'Comparaison annuelle' : 'Comparaison mensuelle'}
-              </h3>
+              <h3 className="text-xl font-bold mb-4">Comparaison annuelle</h3>
               <ResponsiveContainer width="100%" height={200}>
-                {vueComparative === 'annuelle' ? (
-                  <BarChart data={[
-                    { name: new Date().getFullYear() - 1, Revenus: getComparaisonAnnuelle().lastYear.revenus, Depenses: getComparaisonAnnuelle().lastYear.depenses },
-                    { name: new Date().getFullYear(), Revenus: getComparaisonAnnuelle().currentYear.revenus, Depenses: getComparaisonAnnuelle().currentYear.depenses }
-                  ]}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="Revenus" fill="#10b981" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="Depenses" fill="#ef4444" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                ) : (
-                  <BarChart data={getRevenusDepensesMois()}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="mois" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="revenus" fill="#10b981" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="depenses" fill="#ef4444" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                )}
+                <BarChart data={[
+                  { name: new Date().getFullYear() - 1, Revenus: getComparaisonAnnuelle().lastYear.revenus, Depenses: getComparaisonAnnuelle().lastYear.depenses },
+                  { name: new Date().getFullYear(), Revenus: getComparaisonAnnuelle().currentYear.revenus, Depenses: getComparaisonAnnuelle().currentYear.depenses }
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="Revenus" fill="#10b981" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="Depenses" fill="#ef4444" radius={[8, 8, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
+            </div>
+          )}
+          
+          {vueComparative === 'mensuelle' && (
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg mb-6 border ${borderClass}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">Sélectionner les mois à comparer</h3>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                {getMoisDisponibles().map(mois => (
+                  <label key={mois} className={`flex items-center gap-2 p-3 rounded-xl border ${borderClass} cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${moisSelectionnes.includes(mois) ? 'ring-2 ring-orange-500 bg-orange-50 dark:bg-orange-900/20' : ''}`}>
+                    <input 
+                      type="checkbox" 
+                      checked={moisSelectionnes.includes(mois)}
+                      onChange={() => toggleMois(mois)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm font-medium">{mois}</span>
+                  </label>
+                ))}
+              </div>
+              
+              {moisSelectionnes.length > 0 && (
+                <div className={`border ${borderClass} rounded-xl overflow-hidden`}>
+                  <table className="w-full">
+                    <thead className={darkMode ? 'bg-gray-700' : 'bg-gray-50'}>
+                      <tr>
+                        <th className={`px-4 py-3 text-left text-sm font-medium ${mutedClass}`}>Mois</th>
+                        <th className={`px-4 py-3 text-right text-sm font-medium ${mutedClass}`}>Revenus</th>
+                        <th className={`px-4 py-3 text-right text-sm font-medium ${mutedClass}`}>Dépenses</th>
+                        <th className={`px-4 py-3 text-right text-sm font-medium ${mutedClass}`}>Solde</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y ${borderClass}`}>
+                      {getDataMoisSelectionnes().map(data => (
+                        <tr key={data.mois} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <td className="px-4 py-3 text-sm font-medium">{data.mois}</td>
+                          <td className="px-4 py-3 text-sm text-right text-green-600 font-bold">+{data.revenus.toFixed(2)} {config.devise}</td>
+                          <td className="px-4 py-3 text-sm text-right text-red-600 font-bold">-{data.depenses.toFixed(2)} {config.devise}</td>
+                          <td className={`px-4 py-3 text-sm text-right font-bold ${(data.revenus - data.depenses) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {(data.revenus - data.depenses) >= 0 ? '+' : ''}{(data.revenus - data.depenses).toFixed(2)} {config.devise}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
           
@@ -990,6 +1105,37 @@ const BudgetApp = () => {
             </div>
             
             <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+              <h3 className="text-xl font-bold mb-4">Gestion des comptes</h3>
+              <div className="space-y-2 mb-4">
+                {comptes.map(compte => {
+                  const typeCompte = typesComptes.find(t => t.value === compte.type);
+                  return (
+                    <div key={compte.id} className={`flex items-center justify-between p-3 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} border ${borderClass}`}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{typeCompte?.icon || '💳'}</span>
+                        <div>
+                          <div className="font-medium">{compte.nom}</div>
+                          <div className="text-xs text-gray-500">Solde initial: {compte.soldeInitial.toFixed(2)} {config.devise}</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => { setCompteToEdit(compte); setShowEditCompte(true); }} className="text-blue-600 hover:text-blue-800">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => supprimerCompte(compte.id)} className="text-red-600 hover:text-red-800">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <button onClick={() => setShowAddCompte(true)} className="w-full bg-orange-500 text-white px-4 py-3 rounded-xl hover:bg-orange-600 flex items-center justify-center gap-2">
+                <Plus className="w-4 h-4" /> Ajouter un compte
+              </button>
+            </div>
+            
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
               <h3 className="text-xl font-bold mb-4">Catégories</h3>
               {['depenses', 'revenus'].map(type => (
                 <div key={type} className="mb-4">
@@ -1052,6 +1198,7 @@ const BudgetApp = () => {
       <ModalImportCSV show={showImportCSV} onClose={() => setShowImportCSV(false)} onImport={importerTransactionsCSV} darkMode={darkMode} comptes={comptes} />
       <ModalConfigDashboard show={showConfigDashboard} onClose={() => setShowConfigDashboard(false)} onSave={saveDashboardConfig} darkMode={darkMode} currentConfig={dashboardConfig} />
       <ModalCompte show={showAddCompte} onClose={() => setShowAddCompte(false)} onCreate={ajouterCompte} darkMode={darkMode} typesComptes={typesComptes} devise={config.devise} />
+      <ModalEditCompte show={showEditCompte} onClose={() => { setShowEditCompte(false); setCompteToEdit(null); }} onUpdate={modifierCompte} darkMode={darkMode} compte={compteToEdit} typesComptes={typesComptes} devise={config.devise} />
       <ModalTransaction show={showAddTransaction} onClose={() => setShowAddTransaction(false)} onCreate={ajouterTransaction} darkMode={darkMode} comptes={comptes} categories={categories} devise={config.devise} />
       <ModalObjectif show={showAddObjectif} onClose={() => setShowAddObjectif(false)} onCreate={ajouterObjectif} darkMode={darkMode} devise={config.devise} />
       <ModalBudget show={showAddBudget} onClose={() => setShowAddBudget(false)} onCreate={ajouterBudget} darkMode={darkMode} categories={categories} devise={config.devise} />
