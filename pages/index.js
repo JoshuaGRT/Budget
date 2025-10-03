@@ -78,7 +78,7 @@ const ModalCompte = memo(({ show, onClose, onCreate, darkMode, typesComptes, dev
         </div>
       </div>
     </div>
-  );
+  ), [textClass, cardClass, borderClass, mutedClass, stats, config.devise, getDepensesParCategorie, getEvolutionSolde, getBudgetAlerts, categories.depenses, supprimerBudget, comptesAvecSoldes, darkMode, COLORS]);
 });
 
 const ModalTransaction = memo(({ show, onClose, onCreate, darkMode, comptes, categories, devise }) => {
@@ -814,7 +814,7 @@ const BudgetApp = () => {
   const mutedClass = darkMode ? 'text-gray-400' : 'text-gray-600';
   const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
   
-  const DashboardView = () => (
+  const DashboardView = useCallback(() => (
     <div className="flex-1 p-8 overflow-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className={`text-3xl font-bold ${textClass}`}>Tableau de bord</h2>
@@ -972,7 +972,7 @@ const BudgetApp = () => {
     </div>
   );
   
-  const TransactionsView = () => (
+  const TransactionsView = useCallback(() => (
     <div className="flex-1 p-8 overflow-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className={`text-3xl font-bold ${textClass}`}>Transactions</h2>
@@ -1028,9 +1028,9 @@ const BudgetApp = () => {
         </table>
       </div>
     </div>
-  );
+  ), [textClass, searchTerm, filtreType, filtreCategorie, filtreCompte, categories, comptes, darkMode, cardClass, borderClass, mutedClass, transactionsFiltrees, comptesAvecSoldes, config.devise, supprimerTransaction]);
   
-  const ObjectifsView = () => (
+  const ObjectifsView = useCallback(() => (
     <div className="flex-1 p-8 overflow-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className={`text-3xl font-bold ${textClass}`}>Objectifs d'épargne</h2>
@@ -1074,9 +1074,9 @@ const BudgetApp = () => {
         })}
       </div>
     </div>
-  );
+  ), [textClass, objectifs, cardClass, borderClass, mutedClass, config.devise, darkMode, supprimerObjectif]);
   
-  const ConfigView = () => (
+  const ConfigView = useCallback(() => (
     <div className="flex-1 p-8 overflow-auto">
       <h2 className={`text-3xl font-bold mb-6 ${textClass}`}>Configuration</h2>
       
@@ -1130,9 +1130,9 @@ const BudgetApp = () => {
         </div>
       </div>
     </div>
-  );
+  ), [textClass, cardClass, borderClass, exporterDonnees, importerDonnees, transactionsRecurrentes, darkMode, mutedClass, config.devise]);
   
-  const ProfilView = () => (
+  const ProfilView = useCallback(() => (
     <div className="flex-1 p-8 overflow-auto">
       <h2 className={`text-3xl font-bold mb-6 ${textClass}`}>Mon profil</h2>
       
@@ -1155,7 +1155,7 @@ const BudgetApp = () => {
         />
       </div>
     </div>
-  );
+  ), [textClass, cardClass, borderClass, mutedClass, profil, handleProfilChange, handleProfilSave, darkMode]);
   
   return (
     <div className={`flex h-screen ${bgClass}`}>
