@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { Menu, Home, CreditCard, Target, Settings, User, Plus, TrendingUp, TrendingDown, Wallet, Calendar, Trash2, Download, Upload, Search, Sun, Moon, BarChart3, AlertCircle, CheckCircle, X, Edit, FileText, Filter, ChevronLeft, ChevronRight, PieChart as PieChartIcon } from 'lucide-react';
+import { Menu, Home, CreditCard, Target, Settings, User, Plus, TrendingUp, TrendingDown, Wallet, Calendar, Trash2, Download, Upload, Search, Sun, Moon, BarChart3, AlertCircle, CheckCircle, X, Edit, FileText, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PieChart as RePieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 // Modal Compte
-const ModalCompte = memo(({ show, onClose, onCreate, darkMode, typesComptes, devise, plateformes }) => {
-  const [data, setData] = useState({ nom: '', type: 'courant', soldeInitial: '', couleur: '#3b82f6', plateforme: '' });
+const ModalCompte = memo(({ show, onClose, onCreate, darkMode, typesComptes, devise }) => {
+  const [data, setData] = useState({ nom: '', type: 'courant', soldeInitial: '', couleur: '#3b82f6' });
   
   useEffect(() => {
     if (!show) {
-      setData({ nom: '', type: 'courant', soldeInitial: '', couleur: '#3b82f6', plateforme: '' });
+      setData({ nom: '', type: 'courant', soldeInitial: '', couleur: '#3b82f6' });
     }
   }, [show]);
   
@@ -45,17 +45,6 @@ const ModalCompte = memo(({ show, onClose, onCreate, darkMode, typesComptes, dev
               className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
             >
               {typesComptes.map(type => (<option key={type.value} value={type.value}>{type.icon} {type.label}</option>))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Plateforme (optionnel)</label>
-            <select 
-              value={data.plateforme} 
-              onChange={(e) => setData({ ...data, plateforme: e.target.value })} 
-              className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}
-            >
-              <option value="">Aucune</option>
-              {plateformes.map(p => (<option key={p.id} value={p.nom}>{p.nom}</option>))}
             </select>
           </div>
           <div>
@@ -353,15 +342,251 @@ const ModalBudget = memo(({ show, onClose, onCreate, darkMode, categories, devis
   );
 });
 
-// Modal Catégorie
-const ModalCategorie = memo(({ show, onClose, onCreate, darkMode, type }) => {
-  const [data, setData] = useState({ nom: '', icon: '📦', color: '#3b82f6' });
+// Modal Import CSV
+const ModalImportCSV = memo(({ show, onClose, onImport, darkMode, comptes, categories }) => {
+  const [csvData, setCsvData] = useState([]);
+  const [headers, setHeaders] = useState([]);
+  const [mapping, setMapping] = useState({ date: '', libelle: '', montant: '', categorie: '' });
+  const [step, setStep] = useState(1); // 1: upload, 2: mapping, 3: preview
+  const [selectedCompte, setSelectedCompte] = useState(comptes[0]?.id || 1);
+  
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      const lines = text.split('\n').filter(l => l.trim());
+      if (lines.length === 0) return;
+      
+      const headerLine = lines[0].split(/[;,\t]/);
+      setHeaders(headerLine);
+      
+      const data = lines.slice(1).map(line => {
+        const values = line.split(/[;,\t]/);
+        const row = {};
+        headerLine.forEach((h, i) => row[h] = values[i] || '');
+        return row;
+      });
+      
+      setCsvData(data);
+      setStep(2);
+    };
+    reader.readAsText(file);
+  };
+  
+  const processImport = () => {
+    const transactions = csvData.map((row, index) => {
+      let montant = parseFloat(row[mapping.montant]?.replace(',', '.')) || 0;
+      const libelle = row[mapping.libelle] || `Transaction ${index + 1}`;
+      
+      let type = 'DÉPENSES';
+      if (montant > 0) type = 'REVENUS';
+      else montant = Math.abs(montant);
+      
+      return {
+        date: row[mapping.date] || new Date().toISOString().split('T')[0],
+        libelle,
+        montant: type === 'DÉPENSES' ? -montant : montant,
+        type,
+        categorie: row[mapping.categorie] || 'Autre',
+        compteId: selectedCompte
+      };
+    });
+    
+    onImport(transactions);
+    setStep(1);
+    setCsvData([]);
+    setHeaders([]);
+  };
   
   useEffect(() => {
     if (!show) {
-      setData({ nom: '', icon: '📦', color: '#3b82f6' });
+      setStep(1);
+      setCsvData([]);
+      setHeaders([]);
     }
   }, [show]);
+  
+  if (!show) return null;
+  
+  const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
+  const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
+  
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm overflow-auto p-4">
+      <div className={`${cardClass} rounded-2xl p-6 w-full max-w-4xl shadow-2xl border ${borderClass} max-h-[90vh] overflow-auto`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold">Import CSV - Étape {step}/3</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        {step === 1 && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Importez vos transactions depuis un fichier CSV, TSV ou texte délimité.
+            </p>
+            <div>
+              <label className="block text-sm font-medium mb-1">Sélectionner le compte</label>
+              <select 
+                value={selectedCompte} 
+                onChange={(e) => setSelectedCompte(parseInt(e.target.value))}
+                className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
+              >
+                {comptes.map(c => (<option key={c.id} value={c.id}>{c.nom}</option>))}
+              </select>
+            </div>
+            <label className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed ${borderClass} rounded-2xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors`}>
+              <Upload className="w-12 h-12 mb-2 text-gray-400" />
+              <span className="text-sm text-gray-600 dark:text-gray-400">Cliquez pour sélectionner un fichier CSV</span>
+              <span className="text-xs text-gray-500 mt-1">Format: CSV, TSV (délimiteurs: , ; tab)</span>
+              <input type="file" accept=".csv,.txt,.tsv" onChange={handleFileUpload} className="hidden" />
+            </label>
+          </div>
+        )}
+        
+        {step === 2 && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Associez les colonnes de votre fichier aux champs requis. {csvData.length} lignes détectées.
+            </p>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Colonne Date</label>
+                <select 
+                  value={mapping.date} 
+                  onChange={(e) => setMapping({...mapping, date: e.target.value})}
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
+                >
+                  <option value="">Sélectionner...</option>
+                  {headers.map(h => (<option key={h} value={h}>{h}</option>))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Colonne Libellé</label>
+                <select 
+                  value={mapping.libelle} 
+                  onChange={(e) => setMapping({...mapping, libelle: e.target.value})}
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
+                >
+                  <option value="">Sélectionner...</option>
+                  {headers.map(h => (<option key={h} value={h}>{h}</option>))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Colonne Montant</label>
+                <select 
+                  value={mapping.montant} 
+                  onChange={(e) => setMapping({...mapping, montant: e.target.value})}
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
+                >
+                  <option value="">Sélectionner...</option>
+                  {headers.map(h => (<option key={h} value={h}>{h}</option>))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Colonne Catégorie (optionnel)</label>
+                <select 
+                  value={mapping.categorie} 
+                  onChange={(e) => setMapping({...mapping, categorie: e.target.value})}
+                  className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
+                >
+                  <option value="">Aucune</option>
+                  {headers.map(h => (<option key={h} value={h}>{h}</option>))}
+                </select>
+              </div>
+            </div>
+            
+            <div className={`p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+              <div className="text-sm font-medium mb-2">Aperçu première ligne :</div>
+              {csvData[0] && (
+                <div className="text-xs space-y-1">
+                  <div>Date: {csvData[0][mapping.date] || 'Non mappé'}</div>
+                  <div>Libellé: {csvData[0][mapping.libelle] || 'Non mappé'}</div>
+                  <div>Montant: {csvData[0][mapping.montant] || 'Non mappé'}</div>
+                  <div>Catégorie: {csvData[0][mapping.categorie] || 'Auto'}</div>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              <button onClick={() => setStep(1)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400">Retour</button>
+              <button 
+                onClick={() => setStep(3)} 
+                disabled={!mapping.date || !mapping.libelle || !mapping.montant}
+                className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 disabled:opacity-50"
+              >
+                Prévisualiser
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {step === 3 && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Vérifiez les transactions avant import. {csvData.length} transactions seront ajoutées.
+            </p>
+            
+            <div className={`max-h-96 overflow-auto border ${borderClass} rounded-xl`}>
+              <table className="w-full text-sm">
+                <thead className={`sticky top-0 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                  <tr>
+                    <th className="px-4 py-2 text-left">Date</th>
+                    <th className="px-4 py-2 text-left">Libellé</th>
+                    <th className="px-4 py-2 text-right">Montant</th>
+                    <th className="px-4 py-2 text-left">Type</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {csvData.slice(0, 50).map((row, i) => {
+                    const montant = parseFloat(row[mapping.montant]?.replace(',', '.')) || 0;
+                    return (
+                      <tr key={i} className={`border-t ${borderClass}`}>
+                        <td className="px-4 py-2">{row[mapping.date]}</td>
+                        <td className="px-4 py-2">{row[mapping.libelle]}</td>
+                        <td className={`px-4 py-2 text-right ${montant < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          {montant.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-2">{montant < 0 ? 'Dépense' : 'Revenu'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            {csvData.length > 50 && (
+              <p className="text-xs text-gray-500">... et {csvData.length - 50} autres transactions</p>
+            )}
+            
+            <div className="flex gap-2">
+              <button onClick={() => setStep(2)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400">Retour</button>
+              <button onClick={processImport} className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-xl hover:from-green-600 hover:to-green-700">
+                Importer {csvData.length} transactions
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+const ModalEditCategorie = memo(({ show, onClose, onUpdate, darkMode, categorie, type }) => {
+  const [data, setData] = useState({ nom: '', icon: '', color: '' });
+  
+  useEffect(() => {
+    if (show && categorie) {
+      setData({ nom: categorie.nom, icon: categorie.icon, color: categorie.color });
+    }
+  }, [show, categorie]);
   
   if (!show) return null;
   
@@ -374,7 +599,7 @@ const ModalCategorie = memo(({ show, onClose, onCreate, darkMode, type }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
       <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold">Nouvelle catégorie - {type}</h3>
+          <h3 className="text-xl font-bold">Modifier la catégorie</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
@@ -387,7 +612,6 @@ const ModalCategorie = memo(({ show, onClose, onCreate, darkMode, type }) => {
               value={data.nom} 
               onChange={(e) => setData({ ...data, nom: e.target.value })} 
               className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
-              placeholder="Ex: Sport" 
             />
           </div>
           <div>
@@ -409,7 +633,6 @@ const ModalCategorie = memo(({ show, onClose, onCreate, darkMode, type }) => {
               value={data.icon} 
               onChange={(e) => setData({ ...data, icon: e.target.value })} 
               className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`} 
-              placeholder="ou saisir un emoji" 
             />
           </div>
           <div>
@@ -423,7 +646,7 @@ const ModalCategorie = memo(({ show, onClose, onCreate, darkMode, type }) => {
           </div>
         </div>
         <div className="flex gap-2 mt-6">
-          <button type="button" onClick={() => onCreate(data)} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">Créer</button>
+          <button type="button" onClick={() => onUpdate(data)} className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 shadow-lg transition-all">Enregistrer</button>
           <button type="button" onClick={onClose} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400 transition-all">Annuler</button>
         </div>
       </div>
@@ -545,16 +768,11 @@ const BudgetApp = () => {
     { value: 'crypto', label: 'Crypto', icon: '₿' }
   ]);
   
-  const [plateformes, setPlateformes] = useState([
-    { id: 1, nom: 'Boursorama', type: 'banque' },
-    { id: 2, nom: 'Fortuneo', type: 'banque' },
-    { id: 3, nom: 'Trade Republic', type: 'courtier' },
-    { id: 4, nom: 'Binance', type: 'crypto' }
-  ]);
+
   
   const [comptes, setComptes] = useState([
-    { id: 1, nom: 'Compte courant', type: 'courant', soldeInitial: 2500, couleur: '#3b82f6', plateforme: 'Boursorama' },
-    { id: 2, nom: 'PEA', type: 'pea', soldeInitial: 5000, couleur: '#10b981', plateforme: 'Trade Republic' }
+    { id: 1, nom: 'Compte courant', type: 'courant', soldeInitial: 2500, couleur: '#3b82f6' },
+    { id: 2, nom: 'PEA', type: 'pea', soldeInitial: 5000, couleur: '#10b981' }
   ]);
   
   const [transactions, setTransactions] = useState([
@@ -597,9 +815,25 @@ const BudgetApp = () => {
   const [showAddObjectif, setShowAddObjectif] = useState(false);
   const [showAddBudget, setShowAddBudget] = useState(false);
   const [showAddCategorie, setShowAddCategorie] = useState(false);
+  const [showEditCategorie, setShowEditCategorie] = useState(false);
+  const [showImportCSV, setShowImportCSV] = useState(false);
+  const [showConfigDashboard, setShowConfigDashboard] = useState(false);
   const [categorieType, setCategorieType] = useState('depenses');
+  const [categorieToEdit, setCategorieToEdit] = useState(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [vueComparative, setVueComparative] = useState('none');
+  const [moisSelectionne, setMoisSelectionne] = useState(new Date().toISOString().slice(0, 7));
+  
+  const [dashboardConfig, setDashboardConfig] = useState({
+    statsCards: true,
+    patrimoineChart: true,
+    budgetsSection: true,
+    comptesSection: true,
+    objectifsSection: true,
+    depensesChart: true,
+    comparaisonChart: false
+  });
   
   const [filtreType, setFiltreType] = useState('TOUS');
   const [filtreCategorie, setFiltreCategorie] = useState('');
@@ -774,12 +1008,43 @@ const BudgetApp = () => {
     showToast('Catégorie créée', 'success');
   }, [categorieType, showToast]);
   
+  const modifierCategorie = useCallback((data) => {
+    if (!data.nom || !categorieToEdit) return showToast('Données invalides', 'error');
+    setCategories(prev => ({
+      ...prev,
+      [categorieType]: prev[categorieType].map(c => 
+        c.id === categorieToEdit.id ? { ...c, ...data } : c
+      )
+    }));
+    setShowEditCategorie(false);
+    setCategorieToEdit(null);
+    showToast('Catégorie modifiée', 'success');
+  }, [categorieType, categorieToEdit, showToast]);
+  
   const supprimerCategorie = useCallback((type, id) => {
     setCategories(prev => ({
       ...prev,
       [type]: prev[type].filter(c => c.id !== id)
     }));
     showToast('Catégorie supprimée', 'success');
+  }, [showToast]);
+  
+  const importerTransactionsCSV = useCallback((newTransactions) => {
+    const existingKeys = new Set(transactions.map(t => `${t.date}-${t.libelle}-${t.montant}`));
+    const uniqueTransactions = newTransactions.filter(t => {
+      const key = `${t.date}-${t.libelle}-${t.montant}`;
+      return !existingKeys.has(key);
+    });
+    
+    setTransactions(prev => [...uniqueTransactions.map((t, i) => ({ ...t, id: Date.now() + i })), ...prev]);
+    setShowImportCSV(false);
+    showToast(`${uniqueTransactions.length} transactions importées (${newTransactions.length - uniqueTransactions.length} doublons ignorés)`, 'success');
+  }, [transactions, showToast]);
+  
+  const saveDashboardConfig = useCallback((config) => {
+    setDashboardConfig(config);
+    setShowConfigDashboard(false);
+    showToast('Configuration enregistrée', 'success');
   }, [showToast]);
   
   const supprimerTransaction = useCallback((id) => {
@@ -854,6 +1119,15 @@ const BudgetApp = () => {
           <div className="flex items-center justify-between mb-6">
             <h2 className={`text-3xl font-bold ${textClass}`}>Tableau de bord</h2>
             <div className="flex gap-2">
+              <button onClick={() => setShowConfigDashboard(true)} className="bg-purple-500 text-white px-4 py-2 rounded-xl hover:bg-purple-600 flex items-center gap-2">
+                <Settings className="w-4 h-4" /> Personnaliser
+              </button>
+              <input 
+                type="month" 
+                value={moisSelectionne} 
+                onChange={(e) => setMoisSelectionne(e.target.value)} 
+                className={`px-4 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`}
+              />
               <select value={periodFilter} onChange={(e) => setPeriodFilter(e.target.value)} className={`px-4 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
                 <option value="tout">Tout</option>
                 <option value="semaine">Cette semaine</option>
@@ -861,157 +1135,199 @@ const BudgetApp = () => {
                 <option value="trimestre">Ce trimestre</option>
                 <option value="annee">Cette année</option>
               </select>
-              <button onClick={() => setCompareYear(!compareYear)} className="bg-purple-500 text-white px-4 py-2 rounded-xl hover:bg-purple-600">
-                {compareYear ? 'Masquer' : 'Comparer'} N vs N-1
-              </button>
+              <select value={vueComparative} onChange={(e) => setVueComparative(e.target.value)} className={`px-4 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
+                <option value="none">Sans comparaison</option>
+                <option value="mensuelle">Vue mensuelle</option>
+                <option value="annuelle">Vue annuelle</option>
+              </select>
               <button onClick={exporterPDF} className="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 flex items-center gap-2">
-                <FileText className="w-4 h-4" /> Export PDF
+                <FileText className="w-4 h-4" /> Export
               </button>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 border ${borderClass}`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className={mutedClass}>Patrimoine net</span>
-                <Wallet className="w-5 h-5 text-blue-600" />
+          {dashboardConfig.statsCards && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 border ${borderClass}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={mutedClass}>Patrimoine net</span>
+                  <Wallet className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="text-2xl font-bold">{stats.soldeTotal.toFixed(2)} {config.devise}</div>
               </div>
-              <div className="text-2xl font-bold">{stats.soldeTotal.toFixed(2)} {config.devise}</div>
-            </div>
-            
-            <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 border ${borderClass}`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className={mutedClass}>Revenus</span>
-                <TrendingUp className="w-5 h-5 text-green-600" />
+              
+              <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 border ${borderClass}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={mutedClass}>Revenus</span>
+                  <TrendingUp className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="text-2xl font-bold text-green-600">{stats.totalRevenus.toFixed(2)} {config.devise}</div>
               </div>
-              <div className="text-2xl font-bold text-green-600">{stats.totalRevenus.toFixed(2)} {config.devise}</div>
-            </div>
-            
-            <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 border ${borderClass}`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className={mutedClass}>Dépenses</span>
-                <TrendingDown className="w-5 h-5 text-red-600" />
+              
+              <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 border ${borderClass}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={mutedClass}>Dépenses</span>
+                  <TrendingDown className="w-5 h-5 text-red-600" />
+                </div>
+                <div className="text-2xl font-bold text-red-600">{stats.totalDepenses.toFixed(2)} {config.devise}</div>
               </div>
-              <div className="text-2xl font-bold text-red-600">{stats.totalDepenses.toFixed(2)} {config.devise}</div>
-            </div>
-            
-            <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 border ${borderClass}`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className={mutedClass}>Épargne</span>
-                <CheckCircle className="w-5 h-5 text-purple-600" />
+              
+              <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 border ${borderClass}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={mutedClass}>Épargne</span>
+                  <CheckCircle className="w-5 h-5 text-purple-600" />
+                </div>
+                <div className="text-2xl font-bold text-purple-600">{(stats.totalRevenus - stats.totalDepenses).toFixed(2)} {config.devise}</div>
               </div>
-              <div className="text-2xl font-bold text-purple-600">{(stats.totalRevenus - stats.totalDepenses).toFixed(2)} {config.devise}</div>
             </div>
-          </div>
+          )}
           
-          {compareYear && (
+          {(vueComparative === 'annuelle' || vueComparative === 'mensuelle') && dashboardConfig.comparaisonChart && (
             <div className={`${cardClass} p-6 rounded-2xl shadow-lg mb-6 border ${borderClass}`}>
-              <h3 className="text-xl font-bold mb-4">Comparaison annuelle</h3>
+              <h3 className="text-xl font-bold mb-4">
+                {vueComparative === 'annuelle' ? 'Comparaison annuelle' : 'Comparaison mensuelle'}
+              </h3>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={[
-                  { name: new Date().getFullYear() - 1, Revenus: getComparaisonAnnuelle().lastYear.revenus, Depenses: getComparaisonAnnuelle().lastYear.depenses },
-                  { name: new Date().getFullYear(), Revenus: getComparaisonAnnuelle().currentYear.revenus, Depenses: getComparaisonAnnuelle().currentYear.depenses }
-                ]}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="Revenus" fill="#10b981" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="Depenses" fill="#ef4444" radius={[8, 8, 0, 0]} />
-                </BarChart>
+                {vueComparative === 'annuelle' ? (
+                  <BarChart data={[
+                    { name: new Date().getFullYear() - 1, Revenus: getComparaisonAnnuelle().lastYear.revenus, Depenses: getComparaisonAnnuelle().lastYear.depenses },
+                    { name: new Date().getFullYear(), Revenus: getComparaisonAnnuelle().currentYear.revenus, Depenses: getComparaisonAnnuelle().currentYear.depenses }
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="Revenus" fill="#10b981" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="Depenses" fill="#ef4444" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                ) : (
+                  <BarChart data={getRevenusDepensesMois()}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="mois" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="revenus" fill="#10b981" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="depenses" fill="#ef4444" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                )}
               </ResponsiveContainer>
             </div>
           )}
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
-              <h3 className="text-xl font-bold mb-4">Évolution du patrimoine</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <AreaChart data={getPatrimoineNet()}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="patrimoine" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            {dashboardConfig.patrimoineChart && (
+              <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+                <h3 className="text-xl font-bold mb-4">Évolution du patrimoine</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <AreaChart data={getPatrimoineNet()}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Area type="monotone" dataKey="patrimoine" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.3} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
             
-            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold">Budgets mensuels</h3>
-                <button onClick={() => setShowAddBudget(true)} className="text-orange-600">
-                  <Plus className="w-5 h-5" />
-                </button>
+            {dashboardConfig.depensesChart && (
+              <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+                <h3 className="text-xl font-bold mb-4">Dépenses par catégorie</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <RePieChart>
+                    <Pie data={getDepensesParCategorie()} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={80} fill="#8884d8" dataKey="value">
+                      {getDepensesParCategorie().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </RePieChart>
+                </ResponsiveContainer>
               </div>
-              <div className="space-y-4">
-                {getBudgetAlerts().map(budget => (
-                  <div key={budget.id} className={`p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} border ${borderClass}`}>
-                    <div className="flex justify-between mb-2">
-                      <span className="font-semibold">{budget.categorie}</span>
-                      {budget.alerte && <AlertCircle className="w-5 h-5 text-orange-500" />}
+            )}
+            
+            {dashboardConfig.budgetsSection && (
+              <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold">Budgets mensuels</h3>
+                  <button onClick={() => setShowAddBudget(true)} className="text-orange-600">
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {getBudgetAlerts().map(budget => (
+                    <div key={budget.id} className={`p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} border ${borderClass}`}>
+                      <div className="flex justify-between mb-2">
+                        <span className="font-semibold">{budget.categorie}</span>
+                        {budget.alerte && <AlertCircle className="w-5 h-5 text-orange-500" />}
+                      </div>
+                      <div className={`w-full ${darkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-3`}>
+                        <div className={`h-3 rounded-full ${budget.alerte ? 'bg-orange-500' : 'bg-green-500'}`} style={{ width: `${Math.min(budget.pourcentage, 100)}%` }}></div>
+                      </div>
+                      <div className="flex justify-between mt-2 text-sm">
+                        <span>{budget.depenses.toFixed(2)} / {budget.montantMax} {config.devise}</span>
+                        <span className={budget.alerte ? 'text-orange-500 font-bold' : 'text-green-500'}>{budget.pourcentage.toFixed(0)}%</span>
+                      </div>
                     </div>
-                    <div className={`w-full ${darkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-3`}>
-                      <div className={`h-3 rounded-full ${budget.alerte ? 'bg-orange-500' : 'bg-green-500'}`} style={{ width: `${Math.min(budget.pourcentage, 100)}%` }}></div>
-                    </div>
-                    <div className="flex justify-between mt-2 text-sm">
-                      <span>{budget.depenses.toFixed(2)} / {budget.montantMax} {config.devise}</span>
-                      <span className={budget.alerte ? 'text-orange-500 font-bold' : 'text-green-500'}>{budget.pourcentage.toFixed(0)}%</span>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
-              <h3 className="text-xl font-bold mb-4">Comptes</h3>
-              <div className="space-y-3">
-                {comptesAvecSoldes.map(compte => (
-                  <div key={compte.id} className={`flex items-center justify-between p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} border ${borderClass}`}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: compte.couleur }}></div>
-                      <div>
-                        <div className="font-medium">{compte.nom}</div>
-                        {compte.plateforme && <div className="text-xs text-gray-500">{compte.plateforme}</div>}
+            {dashboardConfig.comptesSection && (
+              <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+                <h3 className="text-xl font-bold mb-4">Comptes</h3>
+                <div className="space-y-3">
+                  {comptesAvecSoldes.map(compte => (
+                    <div key={compte.id} className={`flex items-center justify-between p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} border ${borderClass}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: compte.couleur }}></div>
+                        <div>
+                          <div className="font-medium">{compte.nom}</div>
+                          <div className="text-xs text-gray-500">{typesComptes.find(t => t.value === compte.type)?.label}</div>
+                        </div>
                       </div>
+                      <span className="font-bold">{compte.soldeActuel.toFixed(2)} {config.devise}</span>
                     </div>
-                    <span className="font-bold">{compte.soldeActuel.toFixed(2)} {config.devise}</span>
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => setShowAddCompte(true)} className="mt-4 w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 flex items-center justify-center gap-2">
-                <Plus className="w-4 h-4" /> Ajouter un compte
-              </button>
-            </div>
-            
-            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold">Objectifs</h3>
-                <button onClick={() => setShowAddObjectif(true)} className="text-blue-600">
-                  <Plus className="w-5 h-5" />
+                  ))}
+                </div>
+                <button onClick={() => setShowAddCompte(true)} className="mt-4 w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 flex items-center justify-center gap-2">
+                  <Plus className="w-4 h-4" /> Ajouter un compte
                 </button>
               </div>
-              <div className="space-y-4">
-                {objectifs.map(obj => {
-                  const progress = (obj.montantActuel / obj.montantCible) * 100;
-                  return (
-                    <div key={obj.id} className={`p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} border ${borderClass}`}>
-                      <div className="font-semibold mb-2">{obj.nom}</div>
-                      <div className={`w-full ${darkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-3`}>
-                        <div className="bg-blue-500 h-3 rounded-full" style={{ width: `${Math.min(progress, 100)}%` }}></div>
+            )}
+            
+            {dashboardConfig.objectifsSection && (
+              <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold">Objectifs</h3>
+                  <button onClick={() => setShowAddObjectif(true)} className="text-blue-600">
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {objectifs.map(obj => {
+                    const progress = (obj.montantActuel / obj.montantCible) * 100;
+                    return (
+                      <div key={obj.id} className={`p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} border ${borderClass}`}>
+                        <div className="font-semibold mb-2">{obj.nom}</div>
+                        <div className={`w-full ${darkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-3`}>
+                          <div className="bg-blue-500 h-3 rounded-full" style={{ width: `${Math.min(progress, 100)}%` }}></div>
+                        </div>
+                        <div className="flex justify-between mt-2 text-sm">
+                          <span>{obj.montantActuel.toFixed(2)} {config.devise}</span>
+                          <span>{progress.toFixed(0)}%</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between mt-2 text-sm">
-                        <span>{obj.montantActuel.toFixed(2)} {config.devise}</span>
-                        <span>{progress.toFixed(0)}%</span>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
@@ -1163,6 +1479,18 @@ const BudgetApp = () => {
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+              <h3 className="text-xl font-bold mb-4">Import / Export</h3>
+              <div className="space-y-3">
+                <button onClick={() => setShowImportCSV(true)} className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-xl hover:from-green-600 hover:to-green-700 flex items-center justify-center gap-2 shadow-lg transition-all">
+                  <Upload className="w-4 h-4" /> Importer transactions (CSV)
+                </button>
+                <button onClick={exporterPDF} className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-xl hover:from-blue-600 hover:to-blue-700 flex items-center justify-center gap-2 shadow-lg transition-all">
+                  <Download className="w-4 h-4" /> Exporter rapport (TXT)
+                </button>
+              </div>
+            </div>
+            
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
               <h3 className="text-xl font-bold mb-4">Gestion des catégories</h3>
               
               {['depenses', 'revenus', 'placements'].map(type => (
@@ -1184,28 +1512,19 @@ const BudgetApp = () => {
                           <span>{cat.nom}</span>
                           <div className="w-4 h-4 rounded-full" style={{ backgroundColor: cat.color }}></div>
                         </div>
-                        <button onClick={() => supprimerCategorie(type, cat.id)} className="text-red-600 hover:text-red-800">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex gap-2">
+                          <button onClick={() => { setCategorieToEdit(cat); setCategorieType(type); setShowEditCategorie(true); }} className="text-blue-600 hover:text-blue-800 transition-colors">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => supprimerCategorie(type, cat.id)} className="text-red-600 hover:text-red-800 transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               ))}
-            </div>
-            
-            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
-              <h3 className="text-xl font-bold mb-4">Plateformes</h3>
-              <div className="space-y-2 mb-4">
-                {plateformes.map(p => (
-                  <div key={p.id} className={`flex items-center justify-between p-3 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} border ${borderClass}`}>
-                    <div>
-                      <div className="font-medium">{p.nom}</div>
-                      <div className="text-xs text-gray-500">{p.type}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
             
             <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
@@ -1268,11 +1587,64 @@ const BudgetApp = () => {
         </div>
       )}
 
-      <ModalCompte show={showAddCompte} onClose={() => setShowAddCompte(false)} onCreate={ajouterCompte} darkMode={darkMode} typesComptes={typesComptes} devise={config.devise} plateformes={plateformes} />
+      <ModalCompte show={showAddCompte} onClose={() => setShowAddCompte(false)} onCreate={ajouterCompte} darkMode={darkMode} typesComptes={typesComptes} devise={config.devise} />
       <ModalTransaction show={showAddTransaction} onClose={() => setShowAddTransaction(false)} onCreate={ajouterTransaction} darkMode={darkMode} comptes={comptes} categories={categories} devise={config.devise} />
       <ModalObjectif show={showAddObjectif} onClose={() => setShowAddObjectif(false)} onCreate={ajouterObjectif} darkMode={darkMode} devise={config.devise} />
       <ModalBudget show={showAddBudget} onClose={() => setShowAddBudget(false)} onCreate={ajouterBudget} darkMode={darkMode} categories={categories} devise={config.devise} />
-      <ModalCategorie show={showAddCategorie} onClose={() => setShowAddCategorie(false)} onCreate={ajouterCategorie} darkMode={darkMode} type={categorieType} />
+      <ModalImportCSV show={showImportCSV} onClose={() => setShowImportCSV(false)} onImport={importerTransactionsCSV} darkMode={darkMode} comptes={comptes} categories={categories} />
+      <ModalConfigDashboard show={showConfigDashboard} onClose={() => setShowConfigDashboard(false)} onSave={saveDashboardConfig} darkMode={darkMode} currentConfig={dashboardConfig} />
+      
+      {/* Modal Catégorie - Ajout */}
+      {showAddCategorie && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className={`${cardClass} rounded-2xl p-6 w-full max-w-md shadow-2xl border ${borderClass}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Nouvelle catégorie - {categorieType}</h3>
+              <button onClick={() => setShowAddCategorie(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <input 
+                type="text" 
+                placeholder="Nom" 
+                className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`} 
+                id="newCatNom"
+              />
+              <input 
+                type="text" 
+                placeholder="Emoji" 
+                className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`} 
+                id="newCatIcon"
+              />
+              <input 
+                type="color" 
+                className={`w-full h-12 px-2 py-1 border ${borderClass} rounded-xl cursor-pointer`} 
+                id="newCatColor"
+              />
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button onClick={() => {
+                const nom = document.getElementById('newCatNom').value;
+                const icon = document.getElementById('newCatIcon').value;
+                const color = document.getElementById('newCatColor').value;
+                ajouterCategorie({ nom, icon: icon || '📦', color });
+              }} className="flex-1 bg-orange-500 text-white px-4 py-3 rounded-xl hover:bg-orange-600">Créer</button>
+              <button onClick={() => setShowAddCategorie(false)} className="flex-1 bg-gray-300 text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-400">Annuler</button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal Catégorie - Édition */}
+      <ModalEditCategorie 
+        show={showEditCategorie} 
+        onClose={() => { setShowEditCategorie(false); setCategorieToEdit(null); }} 
+        onUpdate={modifierCategorie}
+        darkMode={darkMode}
+        categorie={categorieToEdit}
+        type={categorieType}
+      />
     </div>
   );
 };
