@@ -78,7 +78,7 @@ const ModalCompte = memo(({ show, onClose, onCreate, darkMode, typesComptes, dev
         </div>
       </div>
     </div>
-  ), [textClass, cardClass, borderClass, mutedClass, stats, config.devise, getDepensesParCategorie, getEvolutionSolde, getBudgetAlerts, categories.depenses, supprimerBudget, comptesAvecSoldes, darkMode, COLORS]);
+  );
 });
 
 const ModalTransaction = memo(({ show, onClose, onCreate, darkMode, comptes, categories, devise }) => {
@@ -797,7 +797,6 @@ const BudgetApp = () => {
     return { depensesMoyennes, revenusMoyens, tauxEpargne };
   }, [stats, transactions]);
   
-  // Callbacks mémorisés pour ProfilForm
   const handleProfilChange = useCallback((newProfil) => {
     setProfil(newProfil);
   }, []);
@@ -813,349 +812,6 @@ const BudgetApp = () => {
   const textClass = darkMode ? 'text-gray-200' : 'text-gray-900';
   const mutedClass = darkMode ? 'text-gray-400' : 'text-gray-600';
   const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
-  
-  const DashboardView = useCallback(() => (
-    <div className="flex-1 p-8 overflow-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className={`text-3xl font-bold ${textClass}`}>Tableau de bord</h2>
-        <button onClick={() => setShowStats(true)} className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-xl hover:from-purple-600 hover:to-purple-700 flex items-center gap-2 shadow-lg transition-all">
-          <BarChart3 className="w-4 h-4" /> Statistiques
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 hover:shadow-xl border ${borderClass}`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className={mutedClass}>Solde total</span>
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold">{stats.soldeTotal.toFixed(2)} {config.devise}</div>
-        </div>
-        
-        <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 hover:shadow-xl border ${borderClass}`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className={mutedClass}>Revenus</span>
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-green-600">{stats.totalRevenus.toFixed(2)} {config.devise}</div>
-        </div>
-        
-        <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 hover:shadow-xl border ${borderClass}`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className={mutedClass}>Dépenses</span>
-            <div className="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
-              <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-red-600">{stats.totalDepenses.toFixed(2)} {config.devise}</div>
-        </div>
-        
-        <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 hover:shadow-xl border ${borderClass}`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className={mutedClass}>Transactions</span>
-            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
-              <CreditCard className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold">{stats.nbTransactions}</div>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
-          <h3 className="text-xl font-bold mb-4">Dépenses par catégorie</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <RePieChart>
-              <Pie data={getDepensesParCategorie()} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={80} fill="#8884d8" dataKey="value">
-                {getDepensesParCategorie().map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </RePieChart>
-          </ResponsiveContainer>
-        </div>
-        
-        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
-          <h3 className="text-xl font-bold mb-4">Évolution du solde</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={getEvolutionSolde()}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="solde" stroke="#3b82f6" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold">Budgets mensuels</h3>
-            <button onClick={() => setShowAddBudget(true)} className="text-orange-600 hover:text-orange-700">
-              <Plus className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="space-y-4">
-            {getBudgetAlerts().map(budget => {
-              const catInfo = categories.depenses.find(c => c.nom === budget.categorie);
-              return (
-                <div key={budget.id} className={`p-4 rounded-xl ${darkMode ? 'bg-gray-700/50' : 'bg-gradient-to-br from-gray-50 to-gray-100'} backdrop-blur-sm transition-all hover:shadow-md border ${borderClass}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">{catInfo?.icon}</span>
-                      <span className="font-semibold">{budget.categorie}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {budget.alerte ? (
-                        <AlertCircle className="w-5 h-5 text-orange-500" />
-                      ) : (
-                        <CheckCircle className="w-5 h-5 text-green-500" />
-                      )}
-                      <button onClick={() => supprimerBudget(budget.id)} className="text-gray-400 hover:text-red-600 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className={`text-sm ${mutedClass}`}>
-                      {budget.depenses.toFixed(2)} / {budget.montantMax} {config.devise}
-                    </span>
-                    <span className={`text-sm font-bold ${budget.alerte ? 'text-orange-500' : 'text-green-500'}`}>
-                      {budget.pourcentage.toFixed(0)}%
-                    </span>
-                  </div>
-                  <div className={`w-full ${darkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-3 overflow-hidden`}>
-                    <div 
-                      className={`h-3 rounded-full transition-all duration-500 ${budget.alerte ? 'bg-gradient-to-r from-orange-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-green-500'}`} 
-                      style={{ width: `${Math.min(budget.pourcentage, 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              );
-            })}
-            {getBudgetAlerts().length === 0 && (
-              <div className="text-center py-8">
-                <p className={mutedClass}>Aucun budget défini</p>
-                <button onClick={() => setShowAddBudget(true)} className="mt-2 text-orange-600 hover:text-orange-700 text-sm">
-                  Créer votre premier budget
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
-          <h3 className="text-xl font-bold mb-4">Comptes</h3>
-          <div className="space-y-3">
-            {comptesAvecSoldes.map(compte => (
-              <div key={compte.id} className={`flex items-center justify-between p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gradient-to-r from-gray-50 to-gray-100'} border ${borderClass} hover:shadow-md transition-all`}>
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 rounded-full shadow-lg" style={{ backgroundColor: compte.couleur }}></div>
-                  <span className="font-medium">{compte.nom}</span>
-                </div>
-                <span className="font-bold text-lg">{compte.soldeActuel.toFixed(2)} {config.devise}</span>
-              </div>
-            ))}
-          </div>
-          <button onClick={() => setShowAddCompte(true)} className="mt-4 w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 flex items-center justify-center gap-2 shadow-lg transition-all">
-            <Plus className="w-4 h-4" /> Ajouter un compte
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-  
-  const TransactionsView = useCallback(() => (
-    <div className="flex-1 p-8 overflow-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className={`text-3xl font-bold ${textClass}`}>Transactions</h2>
-        <button onClick={() => setShowAddTransaction(true)} className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-xl hover:from-orange-600 hover:to-orange-700 flex items-center gap-2 shadow-lg transition-all">
-          <Plus className="w-4 h-4" /> Nouvelle transaction
-        </button>
-      </div>
-      
-      <TransactionsSearchBar 
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        filtreType={filtreType}
-        onTypeChange={setFiltreType}
-        filtreCategorie={filtreCategorie}
-        onCategorieChange={setFiltreCategorie}
-        filtreCompte={filtreCompte}
-        onCompteChange={setFiltreCompte}
-        categories={categories}
-        comptes={comptes}
-        darkMode={darkMode}
-      />
-      
-      <div className={`${cardClass} rounded-2xl shadow-lg overflow-hidden border ${borderClass}`}>
-        <table className="w-full">
-          <thead className={darkMode ? 'bg-gray-700' : 'bg-gray-50'}>
-            <tr>
-              <th className={`px-6 py-3 text-left text-xs font-medium ${mutedClass} uppercase`}>Date</th>
-              <th className={`px-6 py-3 text-left text-xs font-medium ${mutedClass} uppercase`}>Libellé</th>
-              <th className={`px-6 py-3 text-left text-xs font-medium ${mutedClass} uppercase`}>Catégorie</th>
-              <th className={`px-6 py-3 text-left text-xs font-medium ${mutedClass} uppercase`}>Compte</th>
-              <th className={`px-6 py-3 text-right text-xs font-medium ${mutedClass} uppercase`}>Montant</th>
-              <th className={`px-6 py-3 text-right text-xs font-medium ${mutedClass} uppercase`}>Actions</th>
-            </tr>
-          </thead>
-          <tbody className={`divide-y ${borderClass}`}>
-            {transactionsFiltrees.map(t => (
-              <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{t.date}</td>
-                <td className="px-6 py-4 text-sm font-medium">{t.libelle}</td>
-                <td className="px-6 py-4 text-sm">{t.categorie}</td>
-                <td className="px-6 py-4 text-sm">{comptesAvecSoldes.find(c => c.id === t.compteId)?.nom}</td>
-                <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold text-right ${t.montant > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {t.montant > 0 ? '+' : ''}{t.montant.toFixed(2)} {config.devise}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                  <button onClick={() => supprimerTransaction(t.id)} className="text-red-600 hover:text-red-800 transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  ), [textClass, searchTerm, filtreType, filtreCategorie, filtreCompte, categories, comptes, darkMode, cardClass, borderClass, mutedClass, transactionsFiltrees, comptesAvecSoldes, config.devise, supprimerTransaction]);
-  
-  const ObjectifsView = useCallback(() => (
-    <div className="flex-1 p-8 overflow-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className={`text-3xl font-bold ${textClass}`}>Objectifs d'épargne</h2>
-        <button onClick={() => setShowAddObjectif(true)} className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl hover:from-blue-600 hover:to-blue-700 flex items-center gap-2 shadow-lg transition-all">
-          <Plus className="w-4 h-4" /> Nouvel objectif
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {objectifs.map(obj => {
-          const progression = (obj.montantActuel / obj.montantCible) * 100;
-          return (
-            <div key={obj.id} className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 border ${borderClass}`}>
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-bold">{obj.nom}</h3>
-                  <p className={`text-sm ${mutedClass}`}>{obj.categorie}</p>
-                </div>
-                <button onClick={() => supprimerObjectif(obj.id)} className="text-red-600 hover:text-red-800 transition-colors">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-              
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="font-semibold">{obj.montantActuel.toFixed(2)} {config.devise}</span>
-                  <span className={mutedClass}>{obj.montantCible.toFixed(2)} {config.devise}</span>
-                </div>
-                <div className={`w-full ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-3 overflow-hidden`}>
-                  <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500" style={{ width: `${Math.min(progression, 100)}%` }}></div>
-                </div>
-                <div className={`text-center text-sm font-semibold ${mutedClass} mt-2`}>{progression.toFixed(0)}% atteint</div>
-              </div>
-              
-              <div className={`flex items-center text-sm ${mutedClass}`}>
-                <Calendar className="w-4 h-4 mr-1" />
-                {obj.dateObjectif || 'Non définie'}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  ), [textClass, objectifs, cardClass, borderClass, mutedClass, config.devise, darkMode, supprimerObjectif]);
-  
-  const ConfigView = useCallback(() => (
-    <div className="flex-1 p-8 overflow-auto">
-      <h2 className={`text-3xl font-bold mb-6 ${textClass}`}>Configuration</h2>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
-          <h3 className="text-xl font-bold mb-4">Import / Export</h3>
-          <div className="space-y-3">
-            <button onClick={exporterDonnees} className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-xl hover:from-blue-600 hover:to-blue-700 flex items-center justify-center gap-2 shadow-lg transition-all">
-              <Download className="w-4 h-4" /> Exporter les données
-            </button>
-            <label className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-xl hover:from-green-600 hover:to-green-700 flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-all">
-              <Upload className="w-4 h-4" /> Importer les données
-              <input type="file" accept=".json" onChange={importerDonnees} className="hidden" />
-            </label>
-          </div>
-        </div>
-        
-        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
-          <h3 className="text-xl font-bold mb-4">Transactions récurrentes</h3>
-          <div className="space-y-2 mb-4">
-            {transactionsRecurrentes.map(tr => (
-              <div key={tr.id} className={`flex items-center justify-between p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl border ${borderClass}`}>
-                <div>
-                  <div className="font-medium">{tr.libelle}</div>
-                  <div className={`text-xs ${mutedClass}`}>{tr.categorie} • Jour {tr.jour}</div>
-                </div>
-                <span className={`font-bold ${tr.montant > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {tr.montant.toFixed(2)} {config.devise}
-                </span>
-              </div>
-            ))}
-          </div>
-          <button onClick={() => setShowAddRecurrente(true)} className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-3 rounded-xl hover:from-purple-600 hover:to-purple-700 flex items-center justify-center gap-2 shadow-lg transition-all">
-            <Plus className="w-4 h-4" /> Ajouter
-          </button>
-        </div>
-        
-        <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
-          <h3 className="text-xl font-bold mb-4">Paramètres généraux</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Devise</label>
-              <select value={config.devise} onChange={(e) => setConfig({...config, devise: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
-                <option value="€">Euro (€)</option>
-                <option value="$">Dollar ($)</option>
-                <option value="£">Livre (£)</option>
-                <option value="CHF">Franc suisse (CHF)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  ), [textClass, cardClass, borderClass, exporterDonnees, importerDonnees, transactionsRecurrentes, darkMode, mutedClass, config.devise]);
-  
-  const ProfilView = useCallback(() => (
-    <div className="flex-1 p-8 overflow-auto">
-      <h2 className={`text-3xl font-bold mb-6 ${textClass}`}>Mon profil</h2>
-      
-      <div className={`${cardClass} p-6 rounded-2xl shadow-lg max-w-2xl border ${borderClass}`}>
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
-            {profil.nom.charAt(0)}
-          </div>
-          <div>
-            <h3 className="text-2xl font-bold">{profil.nom}</h3>
-            <p className={mutedClass}>{profil.email}</p>
-          </div>
-        </div>
-        
-        <ProfilForm 
-          profil={profil}
-          onProfilChange={handleProfilChange}
-          onSave={handleProfilSave}
-          darkMode={darkMode}
-        />
-      </div>
-    </div>
-  ), [textClass, cardClass, borderClass, mutedClass, profil, handleProfilChange, handleProfilSave, darkMode]);
   
   return (
     <div className={`flex h-screen ${bgClass}`}>
@@ -1212,11 +868,348 @@ const BudgetApp = () => {
         )}
       </div>
 
-      {currentView === 'dashboard' && <DashboardView />}
-      {currentView === 'transactions' && <TransactionsView />}
-      {currentView === 'objectifs' && <ObjectifsView />}
-      {currentView === 'config' && <ConfigView />}
-      {currentView === 'profil' && <ProfilView />}
+      {currentView === 'dashboard' && (
+        <div className="flex-1 p-8 overflow-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className={`text-3xl font-bold ${textClass}`}>Tableau de bord</h2>
+            <button onClick={() => setShowStats(true)} className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-xl hover:from-purple-600 hover:to-purple-700 flex items-center gap-2 shadow-lg transition-all">
+              <BarChart3 className="w-4 h-4" /> Statistiques
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 hover:shadow-xl border ${borderClass}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className={mutedClass}>Solde total</span>
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                  <Wallet className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold">{stats.soldeTotal.toFixed(2)} {config.devise}</div>
+            </div>
+            
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 hover:shadow-xl border ${borderClass}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className={mutedClass}>Revenus</span>
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-green-600">{stats.totalRevenus.toFixed(2)} {config.devise}</div>
+            </div>
+            
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 hover:shadow-xl border ${borderClass}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className={mutedClass}>Dépenses</span>
+                <div className="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                  <TrendingDown className="w-5 h-5 text-red-600 dark:text-red-400" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold text-red-600">{stats.totalDepenses.toFixed(2)} {config.devise}</div>
+            </div>
+            
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 hover:shadow-xl border ${borderClass}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className={mutedClass}>Transactions</span>
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
+                  <CreditCard className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+              </div>
+              <div className="text-2xl font-bold">{stats.nbTransactions}</div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+              <h3 className="text-xl font-bold mb-4">Dépenses par catégorie</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <RePieChart>
+                  <Pie data={getDepensesParCategorie()} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={80} fill="#8884d8" dataKey="value">
+                    {getDepensesParCategorie().map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </RePieChart>
+              </ResponsiveContainer>
+            </div>
+            
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+              <h3 className="text-xl font-bold mb-4">Évolution du solde</h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={getEvolutionSolde()}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="solde" stroke="#3b82f6" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">Budgets mensuels</h3>
+                <button onClick={() => setShowAddBudget(true)} className="text-orange-600 hover:text-orange-700">
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                {getBudgetAlerts().map(budget => {
+                  const catInfo = categories.depenses.find(c => c.nom === budget.categorie);
+                  return (
+                    <div key={budget.id} className={`p-4 rounded-xl ${darkMode ? 'bg-gray-700/50' : 'bg-gradient-to-br from-gray-50 to-gray-100'} backdrop-blur-sm transition-all hover:shadow-md border ${borderClass}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl">{catInfo?.icon}</span>
+                          <span className="font-semibold">{budget.categorie}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {budget.alerte ? (
+                            <AlertCircle className="w-5 h-5 text-orange-500" />
+                          ) : (
+                            <CheckCircle className="w-5 h-5 text-green-500" />
+                          )}
+                          <button onClick={() => supprimerBudget(budget.id)} className="text-gray-400 hover:text-red-600 transition-colors">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className={`text-sm ${mutedClass}`}>
+                          {budget.depenses.toFixed(2)} / {budget.montantMax} {config.devise}
+                        </span>
+                        <span className={`text-sm font-bold ${budget.alerte ? 'text-orange-500' : 'text-green-500'}`}>
+                          {budget.pourcentage.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className={`w-full ${darkMode ? 'bg-gray-600' : 'bg-gray-200'} rounded-full h-3 overflow-hidden`}>
+                        <div 
+                          className={`h-3 rounded-full transition-all duration-500 ${budget.alerte ? 'bg-gradient-to-r from-orange-400 to-orange-500' : 'bg-gradient-to-r from-green-400 to-green-500'}`} 
+                          style={{ width: `${Math.min(budget.pourcentage, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {getBudgetAlerts().length === 0 && (
+                  <div className="text-center py-8">
+                    <p className={mutedClass}>Aucun budget défini</p>
+                    <button onClick={() => setShowAddBudget(true)} className="mt-2 text-orange-600 hover:text-orange-700 text-sm">
+                      Créer votre premier budget
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+              <h3 className="text-xl font-bold mb-4">Comptes</h3>
+              <div className="space-y-3">
+                {comptesAvecSoldes.map(compte => (
+                  <div key={compte.id} className={`flex items-center justify-between p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gradient-to-r from-gray-50 to-gray-100'} border ${borderClass} hover:shadow-md transition-all`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full shadow-lg" style={{ backgroundColor: compte.couleur }}></div>
+                      <span className="font-medium">{compte.nom}</span>
+                    </div>
+                    <span className="font-bold text-lg">{compte.soldeActuel.toFixed(2)} {config.devise}</span>
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setShowAddCompte(true)} className="mt-4 w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 flex items-center justify-center gap-2 shadow-lg transition-all">
+                <Plus className="w-4 h-4" /> Ajouter un compte
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {currentView === 'transactions' && (
+        <div className="flex-1 p-8 overflow-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className={`text-3xl font-bold ${textClass}`}>Transactions</h2>
+            <button onClick={() => setShowAddTransaction(true)} className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-xl hover:from-orange-600 hover:to-orange-700 flex items-center gap-2 shadow-lg transition-all">
+              <Plus className="w-4 h-4" /> Nouvelle transaction
+            </button>
+          </div>
+          
+          <TransactionsSearchBar 
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            filtreType={filtreType}
+            onTypeChange={setFiltreType}
+            filtreCategorie={filtreCategorie}
+            onCategorieChange={setFiltreCategorie}
+            filtreCompte={filtreCompte}
+            onCompteChange={setFiltreCompte}
+            categories={categories}
+            comptes={comptes}
+            darkMode={darkMode}
+          />
+          
+          <div className={`${cardClass} rounded-2xl shadow-lg overflow-hidden border ${borderClass}`}>
+            <table className="w-full">
+              <thead className={darkMode ? 'bg-gray-700' : 'bg-gray-50'}>
+                <tr>
+                  <th className={`px-6 py-3 text-left text-xs font-medium ${mutedClass} uppercase`}>Date</th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium ${mutedClass} uppercase`}>Libellé</th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium ${mutedClass} uppercase`}>Catégorie</th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium ${mutedClass} uppercase`}>Compte</th>
+                  <th className={`px-6 py-3 text-right text-xs font-medium ${mutedClass} uppercase`}>Montant</th>
+                  <th className={`px-6 py-3 text-right text-xs font-medium ${mutedClass} uppercase`}>Actions</th>
+                </tr>
+              </thead>
+              <tbody className={`divide-y ${borderClass}`}>
+                {transactionsFiltrees.map(t => (
+                  <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">{t.date}</td>
+                    <td className="px-6 py-4 text-sm font-medium">{t.libelle}</td>
+                    <td className="px-6 py-4 text-sm">{t.categorie}</td>
+                    <td className="px-6 py-4 text-sm">{comptesAvecSoldes.find(c => c.id === t.compteId)?.nom}</td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold text-right ${t.montant > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {t.montant > 0 ? '+' : ''}{t.montant.toFixed(2)} {config.devise}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                      <button onClick={() => supprimerTransaction(t.id)} className="text-red-600 hover:text-red-800 transition-colors">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {currentView === 'objectifs' && (
+        <div className="flex-1 p-8 overflow-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className={`text-3xl font-bold ${textClass}`}>Objectifs d'épargne</h2>
+            <button onClick={() => setShowAddObjectif(true)} className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-xl hover:from-blue-600 hover:to-blue-700 flex items-center gap-2 shadow-lg transition-all">
+              <Plus className="w-4 h-4" /> Nouvel objectif
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {objectifs.map(obj => {
+              const progression = (obj.montantActuel / obj.montantCible) * 100;
+              return (
+                <div key={obj.id} className={`${cardClass} p-6 rounded-2xl shadow-lg transition-all hover:scale-105 border ${borderClass}`}>
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-bold">{obj.nom}</h3>
+                      <p className={`text-sm ${mutedClass}`}>{obj.categorie}</p>
+                    </div>
+                    <button onClick={() => supprimerObjectif(obj.id)} className="text-red-600 hover:text-red-800 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="font-semibold">{obj.montantActuel.toFixed(2)} {config.devise}</span>
+                      <span className={mutedClass}>{obj.montantCible.toFixed(2)} {config.devise}</span>
+                    </div>
+                    <div className={`w-full ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-3 overflow-hidden`}>
+                      <div className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500" style={{ width: `${Math.min(progression, 100)}%` }}></div>
+                    </div>
+                    <div className={`text-center text-sm font-semibold ${mutedClass} mt-2`}>{progression.toFixed(0)}% atteint</div>
+                  </div>
+                  
+                  <div className={`flex items-center text-sm ${mutedClass}`}>
+                    <Calendar className="w-4 h-4 mr-1" />
+                    {obj.dateObjectif || 'Non définie'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {currentView === 'config' && (
+        <div className="flex-1 p-8 overflow-auto">
+          <h2 className={`text-3xl font-bold mb-6 ${textClass}`}>Configuration</h2>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+              <h3 className="text-xl font-bold mb-4">Import / Export</h3>
+              <div className="space-y-3">
+                <button onClick={exporterDonnees} className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-3 rounded-xl hover:from-blue-600 hover:to-blue-700 flex items-center justify-center gap-2 shadow-lg transition-all">
+                  <Download className="w-4 h-4" /> Exporter les données
+                </button>
+                <label className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-3 rounded-xl hover:from-green-600 hover:to-green-700 flex items-center justify-center gap-2 cursor-pointer shadow-lg transition-all">
+                  <Upload className="w-4 h-4" /> Importer les données
+                  <input type="file" accept=".json" onChange={importerDonnees} className="hidden" />
+                </label>
+              </div>
+            </div>
+            
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+              <h3 className="text-xl font-bold mb-4">Transactions récurrentes</h3>
+              <div className="space-y-2 mb-4">
+                {transactionsRecurrentes.map(tr => (
+                  <div key={tr.id} className={`flex items-center justify-between p-3 ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} rounded-xl border ${borderClass}`}>
+                    <div>
+                      <div className="font-medium">{tr.libelle}</div>
+                      <div className={`text-xs ${mutedClass}`}>{tr.categorie} • Jour {tr.jour}</div>
+                    </div>
+                    <span className={`font-bold ${tr.montant > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {tr.montant.toFixed(2)} {config.devise}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setShowAddRecurrente(true)} className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-3 rounded-xl hover:from-purple-600 hover:to-purple-700 flex items-center justify-center gap-2 shadow-lg transition-all">
+                <Plus className="w-4 h-4" /> Ajouter
+              </button>
+            </div>
+            
+            <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
+              <h3 className="text-xl font-bold mb-4">Paramètres généraux</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Devise</label>
+                  <select value={config.devise} onChange={(e) => setConfig({...config, devise: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'} focus:ring-2 focus:ring-orange-500 outline-none`}>
+                    <option value="€">Euro (€)</option>
+                    <option value="$">Dollar ($)</option>
+                    <option value="£">Livre (£)</option>
+                    <option value="CHF">Franc suisse (CHF)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {currentView === 'profil' && (
+        <div className="flex-1 p-8 overflow-auto">
+          <h2 className={`text-3xl font-bold mb-6 ${textClass}`}>Mon profil</h2>
+          
+          <div className={`${cardClass} p-6 rounded-2xl shadow-lg max-w-2xl border ${borderClass}`}>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+                {profil.nom.charAt(0)}
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold">{profil.nom}</h3>
+                <p className={mutedClass}>{profil.email}</p>
+              </div>
+            </div>
+            
+            <ProfilForm 
+              profil={profil}
+              onProfilChange={handleProfilChange}
+              onSave={handleProfilSave}
+              darkMode={darkMode}
+            />
+          </div>
+        </div>
+      )}
 
       <ModalCompte 
         show={showAddCompte} 
