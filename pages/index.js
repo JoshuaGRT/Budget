@@ -191,8 +191,8 @@ const ModalConfigDashboard = memo(({ show, onClose, onSave, darkMode, currentCon
 
 // Modal Compte
 const ModalCompte = memo(({ show, onClose, onCreate, darkMode, typesComptes, devise }) => {
-  const [data, setData] = useState({ nom: '', type: 'courant', soldeInitial: '', couleur: '#3b82f6' });
-  useEffect(() => { if (!show) setData({ nom: '', type: 'courant', soldeInitial: '', couleur: '#3b82f6' }); }, [show]);
+  const [data, setData] = useState({ nom: '', type: 'courant', soldeInitial: '' });
+  useEffect(() => { if (!show) setData({ nom: '', type: 'courant', soldeInitial: '' }); }, [show]);
   if (!show) return null;
   const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
   const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
@@ -205,15 +205,23 @@ const ModalCompte = memo(({ show, onClose, onCreate, darkMode, typesComptes, dev
           <button onClick={onClose}><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-4">
-          <input type="text" value={data.nom} onChange={(e) => setData({...data, nom: e.target.value})} placeholder="Nom" className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
-          <select value={data.type} onChange={(e) => setData({...data, type: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
-            {typesComptes.map(t => (<option key={t.value} value={t.value}>{t.icon} {t.label}</option>))}
-          </select>
-          <input type="number" value={data.soldeInitial} onChange={(e) => setData({...data, soldeInitial: e.target.value})} placeholder="Solde initial" className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
-          <input type="color" value={data.couleur} onChange={(e) => setData({...data, couleur: e.target.value})} className={`w-full h-12 border ${borderClass} rounded-xl`} />
+          <div>
+            <label className="block text-sm font-medium mb-1">Nom du compte</label>
+            <input type="text" value={data.nom} onChange={(e) => setData({...data, nom: e.target.value})} placeholder="Ex: Mon Livret A" className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Type de compte</label>
+            <select value={data.type} onChange={(e) => setData({...data, type: e.target.value})} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
+              {typesComptes.map(t => (<option key={t.value} value={t.value}>{t.icon} {t.label}</option>))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Solde initial ({devise})</label>
+            <input type="number" step="0.01" value={data.soldeInitial} onChange={(e) => setData({...data, soldeInitial: e.target.value})} placeholder="0.00" className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`} />
+          </div>
         </div>
         <div className="flex gap-2 mt-6">
-          <button onClick={() => onCreate({...data, soldeInitial: parseFloat(data.soldeInitial) || 0})} className="flex-1 bg-orange-500 text-white px-4 py-3 rounded-xl">Créer</button>
+          <button onClick={() => onCreate({...data, soldeInitial: parseFloat(data.soldeInitial) || 0, couleur: '#3b82f6'})} className="flex-1 bg-orange-500 text-white px-4 py-3 rounded-xl">Créer</button>
           <button onClick={onClose} className="flex-1 bg-gray-300 px-4 py-3 rounded-xl">Annuler</button>
         </div>
       </div>
@@ -223,8 +231,8 @@ const ModalCompte = memo(({ show, onClose, onCreate, darkMode, typesComptes, dev
 
 // Modal Transaction
 const ModalTransaction = memo(({ show, onClose, onCreate, darkMode, comptes, categories, devise }) => {
-  const [data, setData] = useState({ date: new Date().toISOString().split('T')[0], libelle: '', montant: '', type: 'DÉPENSES', categorie: '', compteId: comptes[0]?.id || 1 });
-  useEffect(() => { if (!show) setData({ date: new Date().toISOString().split('T')[0], libelle: '', montant: '', type: 'DÉPENSES', categorie: '', compteId: comptes[0]?.id || 1 }); }, [show, comptes]);
+  const [data, setData] = useState({ date: new Date().toISOString().split('T')[0], libelle: '', montant: '', type: 'DÉPENSES', categorie: '' });
+  useEffect(() => { if (!show) setData({ date: new Date().toISOString().split('T')[0], libelle: '', montant: '', type: 'DÉPENSES', categorie: '' }); }, [show]);
   if (!show) return null;
   const borderClass = darkMode ? 'border-gray-700' : 'border-gray-200';
   const cardClass = darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900';
@@ -249,12 +257,9 @@ const ModalTransaction = memo(({ show, onClose, onCreate, darkMode, comptes, cat
             {data.type === 'DÉPENSES' && categories.depenses.map(c => (<option key={c.id} value={c.nom}>{c.nom}</option>))}
             {data.type === 'REVENUS' && categories.revenus.map(c => (<option key={c.id} value={c.nom}>{c.nom}</option>))}
           </select>
-          <select value={data.compteId} onChange={(e) => setData({...data, compteId: parseInt(e.target.value)})} className={`w-full px-3 py-2 border ${borderClass} rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-white'}`}>
-            {comptes.map(c => (<option key={c.id} value={c.id}>{c.nom}</option>))}
-          </select>
         </div>
         <div className="flex gap-2 mt-6">
-          <button onClick={() => onCreate({...data, montant: parseFloat(data.montant) || 0})} className="flex-1 bg-orange-500 text-white px-4 py-3 rounded-xl">Créer</button>
+          <button onClick={() => onCreate({...data, montant: parseFloat(data.montant) || 0, compteId: comptes[0]?.id || 1})} className="flex-1 bg-orange-500 text-white px-4 py-3 rounded-xl">Créer</button>
           <button onClick={onClose} className="flex-1 bg-gray-300 px-4 py-3 rounded-xl">Annuler</button>
         </div>
       </div>
@@ -369,10 +374,13 @@ const BudgetApp = () => {
   
   const [typesComptes] = useState([
     { value: 'courant', label: 'Compte courant', icon: '💳' },
-    { value: 'epargne', label: 'Épargne', icon: '🏦' },
     { value: 'livret_a', label: 'Livret A', icon: '📘' },
-    { value: 'pea', label: 'PEA', icon: '📊' },
-    { value: 'per', label: 'PER', icon: '👴' }
+    { value: 'per', label: 'PER', icon: '👴' },
+    { value: 'pel', label: 'PEL', icon: '🏡' },
+    { value: 'crypto', label: 'Crypto', icon: '₿' },
+    { value: 'trade_republic', label: 'Trade Republic', icon: '📊' },
+    { value: 'mon_petit_placement', label: 'Mon Petit Placement', icon: '💰' },
+    { value: 'autre', label: 'Autre', icon: '🏦' }
   ]);
   
   const [comptes, setComptes] = useState([
@@ -815,18 +823,18 @@ const BudgetApp = () => {
               <div className={`${cardClass} p-6 rounded-2xl shadow-lg border ${borderClass}`}>
                 <h3 className="text-xl font-bold mb-4">Comptes</h3>
                 <div className="space-y-3">
-                  {comptesAvecSoldes.map(compte => (
-                    <div key={compte.id} className={`flex items-center justify-between p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} border ${borderClass}`}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: compte.couleur }}></div>
-                        <div>
-                          <div className="font-medium">{compte.nom}</div>
-                          <div className="text-xs text-gray-500">{typesComptes.find(t => t.value === compte.type)?.label}</div>
+                  {comptesAvecSoldes.map(compte => {
+                    const typeCompte = typesComptes.find(t => t.value === compte.type);
+                    return (
+                      <div key={compte.id} className={`flex items-center justify-between p-4 rounded-xl ${darkMode ? 'bg-gray-700' : 'bg-gray-50'} border ${borderClass}`}>
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">{typeCompte?.icon || '💳'}</span>
+                          <span className="font-medium">{compte.nom}</span>
                         </div>
+                        <span className="font-bold text-lg">{compte.soldeActuel.toFixed(2)} {config.devise}</span>
                       </div>
-                      <span className="font-bold">{compte.soldeActuel.toFixed(2)} {config.devise}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <button onClick={() => setShowAddCompte(true)} className="mt-4 w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-3 rounded-xl hover:from-orange-600 hover:to-orange-700 flex items-center justify-center gap-2">
                   <Plus className="w-4 h-4" /> Ajouter
