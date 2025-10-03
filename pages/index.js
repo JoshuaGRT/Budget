@@ -1062,6 +1062,42 @@ const BudgetApp = () => {
     });
   }, [budgets, transactions]);
   
+  const getDepensesParCategorie = useCallback(() => {
+    const depenses = transactions.filter(t => t.montant < 0);
+    const parCategorie = {};
+    depenses.forEach(t => {
+      if (!parCategorie[t.categorie]) parCategorie[t.categorie] = 0;
+      parCategorie[t.categorie] += Math.abs(t.montant);
+    });
+    return Object.entries(parCategorie).map(([name, value]) => ({ name, value }));
+  }, [transactions]);
+  
+  const getPatrimoineNet = useCallback(() => {
+    const sorted = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const initial = comptes.reduce((sum, c) => sum + c.soldeInitial, 0);
+    let patrimoine = initial;
+    
+    const result = [{ date: 'Initial', patrimoine: initial }];
+    
+    sorted.forEach(t => {
+      patrimoine += t.montant;
+      result.push({ date: t.date, patrimoine });
+    });
+    
+    return result;
+  }, [transactions, comptes]);
+  
+  const getRevenusDepensesMois = useCallback(() => {
+    const mois = {};
+    transactions.forEach(t => {
+      const moisKey = t.date.slice(0, 7);
+      if (!mois[moisKey]) mois[moisKey] = { mois: moisKey, revenus: 0, depenses: 0 };
+      if (t.montant > 0) mois[moisKey].revenus += t.montant;
+      else mois[moisKey].depenses += Math.abs(t.montant);
+    });
+    return Object.values(mois).sort((a, b) => a.mois.localeCompare(b.mois));
+  }, [transactions]);
+  
   useEffect(() => {
     document.body.className = darkMode ? 'dark' : '';
   }, [darkMode]);
