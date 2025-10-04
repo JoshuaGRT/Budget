@@ -173,9 +173,15 @@ const ModernModal = memo(({ show, onClose, title, children }) => {
 });
 
 const BudgetApp = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentView, setCurrentView] = useState('dashboard');
   const [modeFocus, setModeFocus] = useState(false);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setSidebarOpen(window.innerWidth > 768);
+    }
+  }, []);
   
   const [typesComptes] = useState([
     { value: 'courant', label: 'Compte courant', icon: '💳' },
