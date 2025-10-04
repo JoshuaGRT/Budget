@@ -191,12 +191,17 @@ const FABMenu = memo(({ onAction, darkMode, currentView }) => {
         return { icon: Target, label: 'Objectif', action: 'objectif', gradient: 'from-purple-500 to-fuchsia-500' };
       case 'categories':
         return { icon: Tag, label: 'Catégorie', action: 'categorie', gradient: 'from-orange-500 to-rose-500' };
+      case 'dashboard':
+      case 'analytics':
+        return null;
       default:
         return { icon: Plus, label: 'Transaction', action: 'transaction', gradient: 'from-cyan-500 to-blue-500' };
     }
   };
   
   const action = getActionForView();
+  
+  if (!action) return null;
   
   return (
     <div className="fixed bottom-8 right-8 z-50">
@@ -401,7 +406,6 @@ const BudgetApp = () => {
     const libelle = document.getElementById('transLibelle')?.value;
     const montant = parseFloat(document.getElementById('transMontant')?.value) || 0;
     const type = document.getElementById('transType')?.value;
-    const compteId = parseInt(document.getElementById('transCompte')?.value) || 1;
     const categorie = document.getElementById('transCategorie')?.value || 'Autre';
     const note = document.getElementById('transNote')?.value || '';
     
@@ -414,7 +418,7 @@ const BudgetApp = () => {
       montant: type === 'DÉPENSES' ? -Math.abs(montant) : Math.abs(montant),
       type,
       categorie,
-      compteId,
+      compteId: comptes[0]?.id || 1,
       tags: selectedTags,
       recurrente: isRecurrente,
       note
@@ -423,7 +427,7 @@ const BudgetApp = () => {
     setShowAddTransaction(false);
     setSelectedTags([]);
     setIsRecurrente(false);
-  }, [setTransactions, selectedTags, isRecurrente]);
+  }, [setTransactions, selectedTags, isRecurrente, comptes]);
   
   const supprimerTransaction = useCallback((id) => {
     setTransactions(prev => prev.filter(t => t.id !== id));
@@ -861,19 +865,17 @@ const BudgetApp = () => {
           <input type="number" id="transMontant" placeholder="Montant" 
             className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`} />
           <select id="transType" 
-            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`}>
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`}
+            style={darkMode ? { colorScheme: 'dark' } : {}}>
             <option value="DÉPENSES">Dépense</option>
             <option value="REVENUS">Revenu</option>
           </select>
           <select id="transCategorie" 
-            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`}>
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`}
+            style={darkMode ? { colorScheme: 'dark' } : {}}>
             <option value="">Catégorie...</option>
             {categories.depenses.map(c => <option key={c.id} value={c.nom}>{c.icon} {c.nom}</option>)}
             {categories.revenus.map(c => <option key={c.id} value={c.nom}>{c.icon} {c.nom}</option>)}
-          </select>
-          <select id="transCompte" 
-            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`}>
-            {comptes.map(c => <option key={c.id} value={c.id}>{c.icon} {c.nom}</option>)}
           </select>
           <textarea id="transNote" placeholder="Note (optionnel)" rows={2}
             className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all resize-none`} />
