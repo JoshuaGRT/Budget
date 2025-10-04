@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { Menu, Home, CreditCard, Target, Settings, User, Plus, TrendingUp, TrendingDown, Wallet, Calendar, Trash2, Upload, Search, BarChart3, AlertCircle, CheckCircle, X, Edit, Zap, Award, Activity, Eye, Sparkles, ArrowUp, ArrowDown, ArrowRight, Layers } from 'lucide-react';
+import { Menu, Home, CreditCard, Target, Settings, User, Plus, TrendingUp, TrendingDown, Wallet, Calendar, Trash2, Upload, Search, BarChart3, AlertCircle, CheckCircle, X, Edit, Zap, Award, Activity, Eye, Sparkles, ArrowUp, ArrowDown, ArrowRight, Layers, Sun, Moon, Download, Filter } from 'lucide-react';
 import { PieChart, Pie, Cell, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, RadialBarChart, RadialBar } from 'recharts';
 
 const useLocalStorage = (key, initialValue) => {
@@ -8,38 +8,48 @@ const useLocalStorage = (key, initialValue) => {
   return [storedValue, setValue];
 };
 
-const GlassCard = memo(({ children, className = "", hover = true }) => (
-  <div className={`backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl shadow-xl ${hover ? 'hover:bg-white/10 hover:border-white/20 hover:scale-[1.02]' : ''} transition-all duration-300 ${className}`}>
+const EMOJIS_COMPTES = ['💳', '📘', '👴', '🏡', '₿', '📊', '💰', '🏦', '💎', '🎯', '🚀', '🌟', '💵', '🏪', '🎁'];
+
+const GlassCard = memo(({ children, className = "", hover = true, darkMode }) => (
+  <div className={`
+    backdrop-blur-xl ${darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-900/5 border-gray-300'} border rounded-3xl shadow-xl
+    ${hover ? (darkMode ? 'hover:bg-white/10 hover:border-white/20' : 'hover:bg-gray-900/10 hover:border-gray-400') + ' hover:scale-[1.02]' : ''}
+    transition-all duration-300 ${className}
+  `}>
     {children}
   </div>
 ));
 
-const TrendBadge = memo(({ value }) => {
+const TrendBadge = memo(({ value, darkMode }) => {
   const isPositive = value >= 0;
   return (
-    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${isPositive ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'} backdrop-blur-xl border`}>
+    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold
+      ${isPositive 
+        ? (darkMode ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-emerald-100 text-emerald-700 border-emerald-300')
+        : (darkMode ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-rose-100 text-rose-700 border-rose-300')
+      } backdrop-blur-xl border`}>
       {isPositive ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
       <span>{Math.abs(value).toFixed(1)}%</span>
     </div>
   );
 });
 
-const StatCard = memo(({ label, value, icon: Icon, trend, color = 'cyan' }) => {
+const StatCard = memo(({ label, value, icon: Icon, trend, color = 'cyan', darkMode }) => {
   const colors = {
-    cyan: { from: 'from-cyan-500', to: 'to-blue-500', text: 'text-cyan-400' },
-    emerald: { from: 'from-emerald-500', to: 'to-teal-500', text: 'text-emerald-400' },
-    rose: { from: 'from-rose-500', to: 'to-pink-500', text: 'text-rose-400' },
-    purple: { from: 'from-purple-500', to: 'to-fuchsia-500', text: 'text-purple-400' }
+    cyan: { from: 'from-cyan-500', to: 'to-blue-500', text: darkMode ? 'text-cyan-400' : 'text-cyan-600' },
+    emerald: { from: 'from-emerald-500', to: 'to-teal-500', text: darkMode ? 'text-emerald-400' : 'text-emerald-600' },
+    rose: { from: 'from-rose-500', to: 'to-pink-500', text: darkMode ? 'text-rose-400' : 'text-rose-600' },
+    purple: { from: 'from-purple-500', to: 'to-fuchsia-500', text: darkMode ? 'text-purple-400' : 'text-purple-600' }
   };
   const c = colors[color];
   
   return (
-    <GlassCard className="p-6">
+    <GlassCard className="p-6" darkMode={darkMode}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm font-medium text-gray-400">{label}</span>
-            {trend !== undefined && <TrendBadge value={trend} />}
+            <span className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{label}</span>
+            {trend !== undefined && <TrendBadge value={trend} darkMode={darkMode} />}
           </div>
           <div className={`text-4xl font-bold bg-gradient-to-r ${c.from} ${c.to} bg-clip-text text-transparent`}>{value}</div>
         </div>
@@ -51,45 +61,52 @@ const StatCard = memo(({ label, value, icon: Icon, trend, color = 'cyan' }) => {
   );
 });
 
-const TransactionItem = memo(({ transaction, categories, onDelete }) => {
+const TransactionItem = memo(({ transaction, categories, onDelete, darkMode }) => {
   const cat = [...categories.depenses, ...categories.revenus].find(c => c.nom === transaction.categorie);
   const isPositive = transaction.montant > 0;
   
   return (
-    <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all group">
-      <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-xl border border-white/10" style={{ backgroundColor: cat?.color + '20' }}>
+    <div className={`flex items-center gap-4 p-4 rounded-2xl border transition-all group
+      ${darkMode 
+        ? 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20' 
+        : 'bg-gray-100 hover:bg-gray-200 border-gray-300 hover:border-gray-400'
+      }`}>
+      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl backdrop-blur-xl border ${darkMode ? 'border-white/10' : 'border-gray-300'}`} 
+        style={{ backgroundColor: cat?.color + '20' }}>
         {cat?.icon || '💰'}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-white truncate">{transaction.libelle}</div>
-        <div className="flex items-center gap-2 text-xs text-gray-400">
+        <div className={`font-semibold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>{transaction.libelle}</div>
+        <div className={`flex items-center gap-2 text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
           <Calendar className="w-3 h-3" />
           <span>{transaction.date}</span>
-          <span className="px-2 py-0.5 rounded-full bg-white/5">{transaction.categorie}</span>
+          <span className={`px-2 py-0.5 rounded-full ${darkMode ? 'bg-white/5' : 'bg-gray-200'}`}>{transaction.categorie}</span>
         </div>
       </div>
-      <div className={`text-lg font-bold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
+      <div className={`text-lg font-bold ${isPositive ? (darkMode ? 'text-emerald-400' : 'text-emerald-600') : (darkMode ? 'text-rose-400' : 'text-rose-600')}`}>
         {isPositive ? '+' : ''}{transaction.montant.toFixed(0)}€
       </div>
-      <button onClick={() => onDelete(transaction.id)} className="opacity-0 group-hover:opacity-100 p-2 rounded-xl hover:bg-rose-500/20 text-rose-400 transition-all">
+      <button onClick={() => onDelete(transaction.id)} 
+        className={`opacity-0 group-hover:opacity-100 p-2 rounded-xl transition-all
+          ${darkMode ? 'hover:bg-rose-500/20 text-rose-400' : 'hover:bg-rose-100 text-rose-600'}`}>
         <Trash2 className="w-4 h-4" />
       </button>
     </div>
   );
 });
 
-const HealthScore = memo(({ score }) => {
+const HealthScore = memo(({ score, darkMode }) => {
   const getColor = () => {
-    if (score >= 70) return { from: '#10b981', to: '#059669', text: 'text-emerald-400' };
-    if (score >= 40) return { from: '#f59e0b', to: '#d97706', text: 'text-orange-400' };
-    return { from: '#ef4444', to: '#dc2626', text: 'text-rose-400' };
+    if (score >= 70) return { from: '#10b981', to: '#059669', text: darkMode ? 'text-emerald-400' : 'text-emerald-600' };
+    if (score >= 40) return { from: '#f59e0b', to: '#d97706', text: darkMode ? 'text-orange-400' : 'text-orange-600' };
+    return { from: '#ef4444', to: '#dc2626', text: darkMode ? 'text-rose-400' : 'text-rose-600' };
   };
   const color = getColor();
   
   return (
-    <GlassCard className="p-6">
+    <GlassCard className="p-6" darkMode={darkMode}>
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-white">Santé Financière</h3>
+        <h3 className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>Santé Financière</h3>
         <Award className={`w-5 h-5 ${color.text}`} />
       </div>
       <div className="relative">
@@ -107,7 +124,7 @@ const HealthScore = memo(({ score }) => {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
             <div className={`text-5xl font-bold ${color.text}`}>{score}</div>
-            <div className="text-xs text-gray-400 mt-1">/ 100</div>
+            <div className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>/ 100</div>
           </div>
         </div>
       </div>
@@ -120,7 +137,7 @@ const HealthScore = memo(({ score }) => {
   );
 });
 
-const FABMenu = memo(({ onAction }) => {
+const FABMenu = memo(({ onAction, darkMode }) => {
   const [open, setOpen] = useState(false);
   const actions = [
     { icon: Plus, label: 'Transaction', action: 'transaction', gradient: 'from-cyan-500 to-blue-500' },
@@ -154,14 +171,14 @@ const FABMenu = memo(({ onAction }) => {
   );
 });
 
-const ModernModal = memo(({ show, onClose, title, children }) => {
+const ModernModal = memo(({ show, onClose, title, children, darkMode }) => {
   if (!show) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/60">
-      <GlassCard className="w-full max-w-md p-6 animate-scaleIn" hover={false}>
+      <GlassCard className="w-full max-w-md p-6 animate-scaleIn" hover={false} darkMode={darkMode}>
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold text-white">{title}</h3>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-all">
+          <h3 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
+          <button onClick={onClose} className={`p-2 rounded-xl transition-all ${darkMode ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'}`}>
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -176,6 +193,9 @@ const BudgetApp = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentView, setCurrentView] = useState('dashboard');
   const [modeFocus, setModeFocus] = useState(false);
+  const [darkMode, setDarkMode] = useLocalStorage('darkMode', true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterPeriod, setFilterPeriod] = useState('all');
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -195,9 +215,9 @@ const BudgetApp = () => {
   ]);
   
   const [comptes, setComptes] = useLocalStorage('comptes', [
-    { id: 1, nom: 'Compte courant', type: 'courant', soldeInitial: 2500 },
-    { id: 2, nom: 'PEA', type: 'trade_republic', soldeInitial: 5000 },
-    { id: 3, nom: 'Livret A', type: 'livret_a', soldeInitial: 3000 }
+    { id: 1, nom: 'Compte courant', type: 'courant', soldeInitial: 2500, icon: '💳' },
+    { id: 2, nom: 'PEA', type: 'trade_republic', soldeInitial: 5000, icon: '📊' },
+    { id: 3, nom: 'Livret A', type: 'livret_a', soldeInitial: 3000, icon: '📘' }
   ]);
   
   const [transactions, setTransactions] = useLocalStorage('transactions', [
@@ -234,6 +254,7 @@ const BudgetApp = () => {
   const [showEditCompte, setShowEditCompte] = useState(false);
   const [compteToEdit, setCompteToEdit] = useState(null);
   const [showAddObjectif, setShowAddObjectif] = useState(false);
+  const [selectedIcon, setSelectedIcon] = useState('💳');
   
   const stats = useMemo(() => {
     const now = new Date();
@@ -276,6 +297,35 @@ const BudgetApp = () => {
     return Math.round(points);
   }, [transactions, budgets, objectifs]);
   
+  const filteredTransactions = useMemo(() => {
+    let filtered = transactions;
+    if (searchTerm) {
+      filtered = filtered.filter(t => t.libelle.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+    if (filterPeriod !== 'all') {
+      const now = new Date();
+      if (filterPeriod === 'month') {
+        const currentMonth = now.toISOString().slice(0, 7);
+        filtered = filtered.filter(t => t.date.startsWith(currentMonth));
+      } else if (filterPeriod === 'week') {
+        const weekAgo = new Date(now);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        filtered = filtered.filter(t => new Date(t.date) >= weekAgo);
+      }
+    }
+    return filtered;
+  }, [transactions, searchTerm, filterPeriod]);
+  
+  const depensesParCategorie = useMemo(() => {
+    const depenses = transactions.filter(t => t.montant < 0);
+    const parCategorie = {};
+    depenses.forEach(t => {
+      if (!parCategorie[t.categorie]) parCategorie[t.categorie] = 0;
+      parCategorie[t.categorie] += Math.abs(t.montant);
+    });
+    return Object.entries(parCategorie).map(([name, value]) => ({ name, value }));
+  }, [transactions]);
+  
   const handleFABAction = useCallback((action) => {
     if (action === 'transaction') setShowAddTransaction(true);
     if (action === 'compte') setShowAddCompte(true);
@@ -316,9 +366,10 @@ const BudgetApp = () => {
     
     if (!nom) return;
     
-    setComptes(prev => [...prev, { id: Date.now(), nom, type, soldeInitial }]);
+    setComptes(prev => [...prev, { id: Date.now(), nom, type, soldeInitial, icon: selectedIcon }]);
     setShowAddCompte(false);
-  }, [setComptes]);
+    setSelectedIcon('💳');
+  }, [setComptes, selectedIcon]);
   
   const modifierCompte = useCallback(() => {
     const nom = document.getElementById('editCompteNom')?.value;
@@ -327,10 +378,10 @@ const BudgetApp = () => {
     
     if (!nom || !compteToEdit) return;
     
-    setComptes(prev => prev.map(c => c.id === compteToEdit.id ? { ...c, nom, type, soldeInitial } : c));
+    setComptes(prev => prev.map(c => c.id === compteToEdit.id ? { ...c, nom, type, soldeInitial, icon: selectedIcon } : c));
     setShowEditCompte(false);
     setCompteToEdit(null);
-  }, [setComptes, compteToEdit]);
+  }, [setComptes, compteToEdit, selectedIcon]);
   
   const supprimerCompte = useCallback((id) => {
     setComptes(prev => prev.filter(c => c.id !== id));
@@ -356,27 +407,62 @@ const BudgetApp = () => {
     });
   }, [comptes, transactions]);
   
+  const exportData = useCallback(() => {
+    const data = { comptes, transactions, objectifs };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `budget-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+  }, [comptes, transactions, objectifs]);
+  
+  const bgClass = darkMode 
+    ? 'bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950' 
+    : 'bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50';
+  
+  const sidebarClass = darkMode
+    ? 'backdrop-blur-2xl bg-white/5 border-white/10'
+    : 'backdrop-blur-2xl bg-gray-900/5 border-gray-300';
+  
+  const textClass = darkMode ? 'text-white' : 'text-gray-900';
+  const mutedClass = darkMode ? 'text-gray-400' : 'text-gray-600';
+  
+  const inputClass = darkMode
+    ? 'bg-white/5 border-white/10 text-white placeholder-gray-500'
+    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500';
+  
+  const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899'];
+  
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px]" />
-      </div>
+    <div className={`flex h-screen ${bgClass} overflow-hidden`}>
+      {!darkMode && (
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-300/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-300/10 rounded-full blur-[120px]" />
+        </div>
+      )}
+      {darkMode && (
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px]" />
+        </div>
+      )}
       
-      <div className={`${sidebarOpen ? 'w-72' : 'w-0 md:w-20'} backdrop-blur-2xl bg-white/5 border-r border-white/10 transition-all flex flex-col fixed md:relative h-full z-30`}>
-        <div className="p-6 flex items-center justify-between border-b border-white/10">
+      <div className={`${sidebarOpen ? 'w-72' : 'w-0 md:w-20'} ${sidebarClass} border-r transition-all flex flex-col fixed md:relative h-full z-30`}>
+        <div className={`p-6 flex items-center justify-between border-b ${darkMode ? 'border-white/10' : 'border-gray-300'}`}>
           {sidebarOpen && (
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
                 <Layers className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">Budget Pro</h1>
-                <p className="text-xs text-gray-400">Version 2.0</p>
+                <h1 className={textClass + ' text-xl font-bold'}>Budget Pro</h1>
+                <p className={mutedClass + ' text-xs'}>Version 2.0</p>
               </div>
             </div>
           )}
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-all">
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-2 rounded-xl transition-all ${darkMode ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-gray-900'}`}>
             <Menu className="w-5 h-5" />
           </button>
         </div>
@@ -387,10 +473,10 @@ const BudgetApp = () => {
             { id: 'transactions', icon: CreditCard, label: 'Transactions', gradient: 'from-emerald-500 to-teal-500' },
             { id: 'comptes', icon: Wallet, label: 'Mes Comptes', gradient: 'from-blue-500 to-indigo-500' },
             { id: 'objectifs', icon: Target, label: 'Objectifs', gradient: 'from-purple-500 to-fuchsia-500' },
-            { id: 'parametres', icon: Settings, label: 'Paramètres', gradient: 'from-orange-500 to-rose-500' }
+            { id: 'analytics', icon: BarChart3, label: 'Analytics', gradient: 'from-orange-500 to-rose-500' }
           ].map(item => (
             <button key={item.id} onClick={() => setCurrentView(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${currentView === item.id ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg` : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all ${currentView === item.id ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg` : (darkMode ? 'text-gray-400 hover:text-white hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200')}`}>
               <item.icon className="w-5 h-5" />
               {sidebarOpen && <span className="font-medium">{item.label}</span>}
               {currentView === item.id && sidebarOpen && <ArrowRight className="w-4 h-4 ml-auto" />}
@@ -398,11 +484,11 @@ const BudgetApp = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/10">
-          <button onClick={() => setModeFocus(!modeFocus)}
-            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl transition-all ${modeFocus ? 'bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white' : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}>
-            <Eye className="w-5 h-5" />
-            {sidebarOpen && <span className="text-sm font-medium">Mode Focus</span>}
+        <div className={`p-4 border-t ${darkMode ? 'border-white/10' : 'border-gray-300'} space-y-2`}>
+          <button onClick={() => setDarkMode(!darkMode)}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl transition-all ${darkMode ? 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10' : 'bg-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-300'}`}>
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {sidebarOpen && <span className="text-sm font-medium">{darkMode ? 'Mode clair' : 'Mode sombre'}</span>}
           </button>
         </div>
       </div>
@@ -412,80 +498,105 @@ const BudgetApp = () => {
           <div className="p-6 md:p-10 max-w-[1600px] mx-auto">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
               <div>
-                <h2 className="text-4xl font-bold text-white mb-2">{modeFocus ? 'Mode Focus' : 'Dashboard'}</h2>
-                <p className="text-gray-400">Votre situation financière en temps réel</p>
+                <h2 className={`text-4xl font-bold ${textClass} mb-2`}>Dashboard</h2>
+                <p className={mutedClass}>Votre situation financière en temps réel</p>
               </div>
+              <button onClick={exportData} className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${darkMode ? 'bg-white/5 hover:bg-white/10 text-gray-400' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}>
+                <Download className="w-4 h-4" />
+                Exporter
+              </button>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <StatCard label="Patrimoine total" value={`${stats.soldeTotal.toFixed(0)}€`} icon={Wallet} color="cyan" />
-              <StatCard label="Revenus du mois" value={`${stats.totalRevenus.toFixed(0)}€`} icon={TrendingUp} color="emerald" trend={stats.trendRevenus} />
-              <StatCard label="Dépenses du mois" value={`${stats.totalDepenses.toFixed(0)}€`} icon={TrendingDown} color="rose" trend={stats.trendDepenses} />
-              <StatCard label="Épargne" value={`${stats.epargne.toFixed(0)}€`} icon={Sparkles} color="purple" />
+              <StatCard label="Patrimoine total" value={`${stats.soldeTotal.toFixed(0)}€`} icon={Wallet} color="cyan" darkMode={darkMode} />
+              <StatCard label="Revenus du mois" value={`${stats.totalRevenus.toFixed(0)}€`} icon={TrendingUp} color="emerald" trend={stats.trendRevenus} darkMode={darkMode} />
+              <StatCard label="Dépenses du mois" value={`${stats.totalDepenses.toFixed(0)}€`} icon={TrendingDown} color="rose" trend={stats.trendDepenses} darkMode={darkMode} />
+              <StatCard label="Épargne" value={`${stats.epargne.toFixed(0)}€`} icon={Sparkles} color="purple" darkMode={darkMode} />
             </div>
             
-            {!modeFocus && (
-              <>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                  <div className="lg:col-span-2">
-                    <GlassCard className="p-6">
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold text-white">Transactions récentes</h3>
-                        <button onClick={() => setCurrentView('transactions')} className="text-sm text-cyan-400 hover:text-cyan-300 flex items-center gap-1">
-                          Voir tout <ArrowRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="space-y-3">
-                        {transactions.slice(0, 5).map(t => (
-                          <TransactionItem key={t.id} transaction={t} categories={categories} onDelete={supprimerTransaction} />
-                        ))}
-                      </div>
-                    </GlassCard>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              <div className="lg:col-span-2">
+                <GlassCard className="p-6" darkMode={darkMode}>
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className={`text-xl font-bold ${textClass}`}>Transactions récentes</h3>
+                    <button onClick={() => setCurrentView('transactions')} className={`text-sm flex items-center gap-1 ${darkMode ? 'text-cyan-400 hover:text-cyan-300' : 'text-cyan-600 hover:text-cyan-700'}`}>
+                      Voir tout <ArrowRight className="w-4 h-4" />
+                    </button>
                   </div>
-                  <HealthScore score={healthScore} />
-                </div>
-                
-                <GlassCard className="p-6">
-                  <h3 className="text-xl font-bold text-white mb-6">Objectifs financiers</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {objectifs.map(obj => {
-                      const progress = (obj.montantActuel / obj.montantCible) * 100;
-                      return (
-                        <div key={obj.id} className="p-6 rounded-2xl bg-white/5 border border-white/10">
-                          <div className="flex items-start justify-between mb-4">
-                            <div>
-                              <h4 className="font-bold text-white mb-1">{obj.nom}</h4>
-                              <p className="text-xs text-gray-400 flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {obj.dateObjectif}
-                              </p>
-                            </div>
-                            <span className="text-2xl font-bold text-purple-400">{progress.toFixed(0)}%</span>
-                          </div>
-                          <div className="relative h-3 bg-white/5 rounded-full overflow-hidden mb-4">
-                            <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-full transition-all duration-500" style={{ width: `${Math.min(progress, 100)}%` }} />
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-400">{obj.montantActuel.toFixed(0)}€</span>
-                            <span className="text-white font-semibold">{obj.montantCible.toFixed(0)}€</span>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="space-y-3">
+                    {transactions.slice(0, 5).map(t => (
+                      <TransactionItem key={t.id} transaction={t} categories={categories} onDelete={supprimerTransaction} darkMode={darkMode} />
+                    ))}
                   </div>
                 </GlassCard>
-              </>
-            )}
+              </div>
+              <HealthScore score={healthScore} darkMode={darkMode} />
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <GlassCard className="p-6" darkMode={darkMode}>
+                <h3 className={`text-xl font-bold ${textClass} mb-6`}>Dépenses par catégorie</h3>
+                {depensesParCategorie.length > 0 && (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie data={depensesParCategorie} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={80} dataKey="value">
+                        {depensesParCategorie.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </GlassCard>
+              
+              <GlassCard className="p-6" darkMode={darkMode}>
+                <h3 className={`text-xl font-bold ${textClass} mb-6`}>Objectifs financiers</h3>
+                <div className="space-y-4">
+                  {objectifs.slice(0, 3).map(obj => {
+                    const progress = (obj.montantActuel / obj.montantCible) * 100;
+                    return (
+                      <div key={obj.id} className={`p-4 rounded-2xl ${darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-100 border-gray-300'} border`}>
+                        <div className="flex items-start justify-between mb-3">
+                          <h4 className={`font-bold ${textClass}`}>{obj.nom}</h4>
+                          <span className={`text-xl font-bold ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>{progress.toFixed(0)}%</span>
+                        </div>
+                        <div className={`relative h-2 rounded-full overflow-hidden ${darkMode ? 'bg-white/5' : 'bg-gray-200'}`}>
+                          <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500 to-fuchsia-500 rounded-full transition-all duration-500" style={{ width: `${Math.min(progress, 100)}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </GlassCard>
+            </div>
           </div>
         )}
         
         {currentView === 'transactions' && (
           <div className="p-6 md:p-10">
-            <h2 className="text-4xl font-bold text-white mb-8">Toutes les transactions</h2>
-            <GlassCard className="p-6">
+            <h2 className={`text-4xl font-bold ${textClass} mb-8`}>Toutes les transactions</h2>
+            
+            <GlassCard className="p-4 mb-6" darkMode={darkMode}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <Search className={`absolute left-3 top-3 w-4 h-4 ${mutedClass}`} />
+                  <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Rechercher..." 
+                    className={`w-full pl-10 px-4 py-2 border rounded-xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`} />
+                </div>
+                <select value={filterPeriod} onChange={(e) => setFilterPeriod(e.target.value)} 
+                  className={`px-4 py-2 border rounded-xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`}>
+                  <option value="all">Toutes les périodes</option>
+                  <option value="week">Cette semaine</option>
+                  <option value="month">Ce mois</option>
+                </select>
+              </div>
+            </GlassCard>
+            
+            <GlassCard className="p-6" darkMode={darkMode}>
               <div className="space-y-3">
-                {transactions.map(t => (
-                  <TransactionItem key={t.id} transaction={t} categories={categories} onDelete={supprimerTransaction} />
+                {filteredTransactions.map(t => (
+                  <TransactionItem key={t.id} transaction={t} categories={categories} onDelete={supprimerTransaction} darkMode={darkMode} />
                 ))}
               </div>
             </GlassCard>
@@ -494,50 +605,49 @@ const BudgetApp = () => {
         
         {currentView === 'comptes' && (
           <div className="p-6 md:p-10">
-            <h2 className="text-4xl font-bold text-white mb-8">Mes Comptes & Placements</h2>
+            <h2 className={`text-4xl font-bold ${textClass} mb-8`}>Mes Comptes & Placements</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {comptesAvecSoldes.map(compte => {
-                const typeCompte = typesComptes.find(t => t.value === compte.type);
-                return (
-                  <GlassCard key={compte.id} className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-4xl">{typeCompte?.icon || '💳'}</span>
-                        <div>
-                          <h3 className="font-bold text-white">{compte.nom}</h3>
-                          <p className="text-xs text-gray-400">{typeCompte?.label}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => { setCompteToEdit(compte); setShowEditCompte(true); }} className="p-2 rounded-xl hover:bg-blue-500/20 text-blue-400">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => supprimerCompte(compte.id)} className="p-2 rounded-xl hover:bg-rose-500/20 text-rose-400">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+              {comptesAvecSoldes.map(compte => (
+                <GlassCard key={compte.id} className="p-6" darkMode={darkMode}>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-4xl">{compte.icon || '💳'}</span>
+                      <div>
+                        <h3 className={`font-bold ${textClass}`}>{compte.nom}</h3>
+                        <p className={`text-xs ${mutedClass}`}>{typesComptes.find(t => t.value === compte.type)?.label}</p>
                       </div>
                     </div>
-                    <div className="text-3xl font-bold text-white mb-2">{compte.soldeActuel.toFixed(2)}€</div>
-                    <div className="text-sm text-gray-400">Solde initial: {compte.soldeInitial.toFixed(2)}€</div>
-                  </GlassCard>
-                );
-              })}
+                    <div className="flex gap-2">
+                      <button onClick={() => { setCompteToEdit(compte); setSelectedIcon(compte.icon || '💳'); setShowEditCompte(true); }} 
+                        className={`p-2 rounded-xl transition-all ${darkMode ? 'hover:bg-blue-500/20 text-blue-400' : 'hover:bg-blue-100 text-blue-600'}`}>
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => supprimerCompte(compte.id)} 
+                        className={`p-2 rounded-xl transition-all ${darkMode ? 'hover:bg-rose-500/20 text-rose-400' : 'hover:bg-rose-100 text-rose-600'}`}>
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className={`text-3xl font-bold ${textClass} mb-2`}>{compte.soldeActuel.toFixed(2)}€</div>
+                  <div className={`text-sm ${mutedClass}`}>Solde initial: {compte.soldeInitial.toFixed(2)}€</div>
+                </GlassCard>
+              ))}
             </div>
           </div>
         )}
         
         {currentView === 'objectifs' && (
           <div className="p-6 md:p-10">
-            <h2 className="text-4xl font-bold text-white mb-8">Mes objectifs</h2>
+            <h2 className={`text-4xl font-bold ${textClass} mb-8`}>Mes objectifs</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {objectifs.map(obj => {
                 const progress = (obj.montantActuel / obj.montantCible) * 100;
                 return (
-                  <GlassCard key={obj.id} className="p-8 hover:scale-105">
+                  <GlassCard key={obj.id} className="p-8 hover:scale-105" darkMode={darkMode}>
                     <div className="flex items-start justify-between mb-6">
                       <div>
-                        <h3 className="text-2xl font-bold text-white mb-2">{obj.nom}</h3>
-                        <p className="text-sm text-gray-400 flex items-center gap-2">
+                        <h3 className={`text-2xl font-bold ${textClass} mb-2`}>{obj.nom}</h3>
+                        <p className={`text-sm ${mutedClass} flex items-center gap-2`}>
                           <Calendar className="w-4 h-4" />
                           {obj.dateObjectif}
                         </p>
@@ -546,20 +656,20 @@ const BudgetApp = () => {
                         <Target className="w-6 h-6 text-white" />
                       </div>
                     </div>
-                    <div className="relative h-4 bg-white/5 rounded-full overflow-hidden mb-4">
+                    <div className={`relative h-4 rounded-full overflow-hidden mb-4 ${darkMode ? 'bg-white/5' : 'bg-gray-200'}`}>
                       <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500 rounded-full transition-all duration-500" style={{ width: `${Math.min(progress, 100)}%` }} />
                     </div>
                     <div className="text-center mb-4">
-                      <div className="text-5xl font-bold bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent">{progress.toFixed(0)}%</div>
+                      <div className={`text-5xl font-bold bg-gradient-to-r from-purple-400 to-fuchsia-400 bg-clip-text text-transparent`}>{progress.toFixed(0)}%</div>
                     </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                    <div className={`flex items-center justify-between pt-4 border-t ${darkMode ? 'border-white/10' : 'border-gray-300'}`}>
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">Actuel</p>
-                        <p className="font-bold text-white">{obj.montantActuel.toFixed(0)}€</p>
+                        <p className={`text-xs ${mutedClass} mb-1`}>Actuel</p>
+                        <p className={`font-bold ${textClass}`}>{obj.montantActuel.toFixed(0)}€</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-gray-400 mb-1">Objectif</p>
-                        <p className="font-bold text-white">{obj.montantCible.toFixed(0)}€</p>
+                        <p className={`text-xs ${mutedClass} mb-1`}>Objectif</p>
+                        <p className={`font-bold ${textClass}`}>{obj.montantCible.toFixed(0)}€</p>
                       </div>
                     </div>
                   </GlassCard>
@@ -569,108 +679,122 @@ const BudgetApp = () => {
           </div>
         )}
         
-        {currentView === 'parametres' && (
+        {currentView === 'analytics' && (
           <div className="p-6 md:p-10">
-            <h2 className="text-4xl font-bold text-white mb-8">Paramètres</h2>
-            <GlassCard className="p-6">
-              <h3 className="text-xl font-bold text-white mb-4">Gestion des comptes</h3>
-              <div className="space-y-3">
-                {comptesAvecSoldes.map(compte => {
-                  const typeCompte = typesComptes.find(t => t.value === compte.type);
-                  return (
-                    <div key={compte.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{typeCompte?.icon}</span>
-                        <div>
-                          <div className="font-medium text-white">{compte.nom}</div>
-                          <div className="text-xs text-gray-400">{typeCompte?.label}</div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => { setCompteToEdit(compte); setShowEditCompte(true); }} className="p-2 rounded-xl hover:bg-blue-500/20 text-blue-400">
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => supprimerCompte(compte.id)} className="p-2 rounded-xl hover:bg-rose-500/20 text-rose-400">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <button onClick={() => setShowAddCompte(true)} className="mt-6 w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-3 rounded-2xl hover:scale-105 transition-all flex items-center justify-center gap-2">
-                <Plus className="w-5 h-5" />
-                Ajouter un compte
-              </button>
+            <h2 className={`text-4xl font-bold ${textClass} mb-8`}>Analytics</h2>
+            <GlassCard className="p-12 text-center" darkMode={darkMode}>
+              <BarChart3 className={`w-24 h-24 mx-auto mb-6 ${darkMode ? 'text-cyan-400' : 'text-cyan-600'}`} />
+              <h3 className={`text-2xl font-bold ${textClass} mb-3`}>Bientôt disponible</h3>
+              <p className={mutedClass}>Analytics avancés en cours de développement</p>
             </GlassCard>
           </div>
         )}
       </div>
       
-      <FABMenu onAction={handleFABAction} />
+      <FABMenu onAction={handleFABAction} darkMode={darkMode} />
       
-      <ModernModal show={showAddTransaction} onClose={() => setShowAddTransaction(false)} title="Nouvelle transaction">
+      <ModernModal show={showAddTransaction} onClose={() => setShowAddTransaction(false)} title="Nouvelle transaction" darkMode={darkMode}>
         <div className="space-y-4">
-          <input type="date" id="transDate" defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all" />
-          <input type="text" id="transLibelle" placeholder="Libellé" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all" />
-          <input type="number" id="transMontant" placeholder="Montant" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all" />
-          <select id="transType" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all">
+          <input type="date" id="transDate" defaultValue={new Date().toISOString().split('T')[0]} 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`} />
+          <input type="text" id="transLibelle" placeholder="Libellé" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`} />
+          <input type="number" id="transMontant" placeholder="Montant" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`} />
+          <select id="transType" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`}>
             <option value="DÉPENSES">Dépense</option>
             <option value="REVENUS">Revenu</option>
           </select>
-          <select id="transCategorie" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all">
+          <select id="transCategorie" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`}>
             <option value="">Catégorie...</option>
-            {categories.depenses.map(c => <option key={c.id} value={c.nom}>{c.nom}</option>)}
-            {categories.revenus.map(c => <option key={c.id} value={c.nom}>{c.nom}</option>)}
+            {categories.depenses.map(c => <option key={c.id} value={c.nom}>{c.icon} {c.nom}</option>)}
+            {categories.revenus.map(c => <option key={c.id} value={c.nom}>{c.icon} {c.nom}</option>)}
           </select>
-          <select id="transCompte" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all">
-            {comptes.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
+          <select id="transCompte" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`}>
+            {comptes.map(c => <option key={c.id} value={c.id}>{c.icon} {c.nom}</option>)}
           </select>
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={ajouterTransaction} className="flex-1 px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold hover:scale-105 transition-all">Ajouter</button>
-          <button onClick={() => setShowAddTransaction(false)} className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all">Annuler</button>
+          <button onClick={() => setShowAddTransaction(false)} className={`px-6 py-3 rounded-2xl border transition-all ${darkMode ? 'bg-white/5 border-white/10 text-white hover:bg-white/10' : 'bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200'}`}>Annuler</button>
         </div>
       </ModernModal>
       
-      <ModernModal show={showAddCompte} onClose={() => setShowAddCompte(false)} title="Nouveau compte">
+      <ModernModal show={showAddCompte} onClose={() => setShowAddCompte(false)} title="Nouveau compte" darkMode={darkMode}>
         <div className="space-y-4">
-          <input type="text" id="compteNom" placeholder="Nom du compte" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all" />
-          <select id="compteType" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all">
+          <input type="text" id="compteNom" placeholder="Nom du compte" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`} />
+          <select id="compteType" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`}>
             {typesComptes.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
           </select>
-          <input type="number" id="compteSolde" placeholder="Solde initial" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all" />
+          <input type="number" id="compteSolde" placeholder="Solde initial" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`} />
+          
+          <div>
+            <label className={`block text-sm font-medium mb-2 ${textClass}`}>Choisir un logo</label>
+            <div className="grid grid-cols-8 gap-2">
+              {EMOJIS_COMPTES.map(emoji => (
+                <button key={emoji} onClick={() => setSelectedIcon(emoji)}
+                  className={`text-3xl p-3 rounded-xl transition-all ${selectedIcon === emoji ? 'bg-gradient-to-r from-cyan-500 to-blue-500 scale-110' : (darkMode ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-100 hover:bg-gray-200')}`}>
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={ajouterCompte} className="flex-1 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold hover:scale-105 transition-all">Créer</button>
-          <button onClick={() => setShowAddCompte(false)} className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all">Annuler</button>
+          <button onClick={() => { setShowAddCompte(false); setSelectedIcon('💳'); }} className={`px-6 py-3 rounded-2xl border transition-all ${darkMode ? 'bg-white/5 border-white/10 text-white hover:bg-white/10' : 'bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200'}`}>Annuler</button>
         </div>
       </ModernModal>
       
-      <ModernModal show={showEditCompte} onClose={() => { setShowEditCompte(false); setCompteToEdit(null); }} title="Modifier le compte">
+      <ModernModal show={showEditCompte} onClose={() => { setShowEditCompte(false); setCompteToEdit(null); }} title="Modifier le compte" darkMode={darkMode}>
         <div className="space-y-4">
-          <input type="text" id="editCompteNom" defaultValue={compteToEdit?.nom} placeholder="Nom du compte" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all" />
-          <select id="editCompteType" defaultValue={compteToEdit?.type} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all">
+          <input type="text" id="editCompteNom" defaultValue={compteToEdit?.nom} placeholder="Nom du compte" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`} />
+          <select id="editCompteType" defaultValue={compteToEdit?.type} 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`}>
             {typesComptes.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
           </select>
-          <input type="number" id="editCompteSolde" defaultValue={compteToEdit?.soldeInitial} placeholder="Solde initial" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all" />
+          <input type="number" id="editCompteSolde" defaultValue={compteToEdit?.soldeInitial} placeholder="Solde initial" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`} />
+          
+          <div>
+            <label className={`block text-sm font-medium mb-2 ${textClass}`}>Choisir un logo</label>
+            <div className="grid grid-cols-8 gap-2">
+              {EMOJIS_COMPTES.map(emoji => (
+                <button key={emoji} onClick={() => setSelectedIcon(emoji)}
+                  className={`text-3xl p-3 rounded-xl transition-all ${selectedIcon === emoji ? 'bg-gradient-to-r from-cyan-500 to-blue-500 scale-110' : (darkMode ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-100 hover:bg-gray-200')}`}>
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={modifierCompte} className="flex-1 px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold hover:scale-105 transition-all">Modifier</button>
-          <button onClick={() => { setShowEditCompte(false); setCompteToEdit(null); }} className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all">Annuler</button>
+          <button onClick={() => { setShowEditCompte(false); setCompteToEdit(null); }} className={`px-6 py-3 rounded-2xl border transition-all ${darkMode ? 'bg-white/5 border-white/10 text-white hover:bg-white/10' : 'bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200'}`}>Annuler</button>
         </div>
       </ModernModal>
       
-      <ModernModal show={showAddObjectif} onClose={() => setShowAddObjectif(false)} title="Nouvel objectif">
+      <ModernModal show={showAddObjectif} onClose={() => setShowAddObjectif(false)} title="Nouvel objectif" darkMode={darkMode}>
         <div className="space-y-4">
-          <input type="text" id="objNom" placeholder="Nom de l'objectif" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all" />
-          <input type="number" id="objCible" placeholder="Montant cible" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all" />
-          <input type="number" id="objActuel" placeholder="Montant actuel" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all" />
-          <input type="date" id="objDate" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all" />
+          <input type="text" id="objNom" placeholder="Nom de l'objectif" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`} />
+          <input type="number" id="objCible" placeholder="Montant cible" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`} />
+          <input type="number" id="objActuel" placeholder="Montant actuel" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`} />
+          <input type="date" id="objDate" 
+            className={`w-full px-4 py-3 border rounded-2xl ${inputClass} focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all`} />
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={ajouterObjectif} className="flex-1 px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white font-semibold hover:scale-105 transition-all">Créer</button>
-          <button onClick={() => setShowAddObjectif(false)} className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all">Annuler</button>
+          <button onClick={() => setShowAddObjectif(false)} className={`px-6 py-3 rounded-2xl border transition-all ${darkMode ? 'bg-white/5 border-white/10 text-white hover:bg-white/10' : 'bg-gray-100 border-gray-300 text-gray-900 hover:bg-gray-200'}`}>Annuler</button>
         </div>
       </ModernModal>
     </div>
