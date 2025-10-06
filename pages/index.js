@@ -123,6 +123,7 @@ const BudgetApp = () => {
   const [selectedTags, setSelectedTags] = useState([]);
   const [isRecurrente, setIsRecurrente] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('6months');
+  const [revenusVsDepensesPeriod, setRevenusVsDepensesPeriod] = useState('month');
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -213,16 +214,6 @@ const BudgetApp = () => {
     });
   }, [budgets, transactions]);
   
-  const topDepenses = useMemo(() => {
-    const now = new Date();
-    const currentMonth = now.toISOString().slice(0, 7);
-    return transactions
-      .filter(t => t.montant < 0 && t.date.startsWith(currentMonth))
-      .sort((a, b) => a.montant - b.montant)
-      .slice(0, 5)
-      .map(t => ({ ...t, montant: Math.abs(t.montant) }));
-  }, [transactions]);
-  
   const revenusVsDepenses = useMemo(() => {
     const monthlyData = {};
     transactions.forEach(t => {
@@ -234,14 +225,18 @@ const BudgetApp = () => {
     
     const sorted = Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
     
-    if (selectedPeriod === '6months') {
-      return sorted.slice(-6).map(d => ({ ...d, month: d.month.split('-').reverse().join('/') }));
-    } else if (selectedPeriod === 'year') {
-      return sorted.slice(-12).map(d => ({ ...d, month: d.month.split('-').reverse().join('/') }));
-    } else {
-      return sorted.map(d => ({ ...d, month: d.month.split('-').reverse().join('/') }));
+    let filtered = sorted;
+    if (revenusVsDepensesPeriod === 'month') {
+      filtered = sorted.slice(-1);
+    } else if (revenusVsDepensesPeriod === 'year') {
+      filtered = sorted.slice(-12);
     }
-  }, [transactions, selectedPeriod]);
+    
+    return filtered.map(d => {
+      const [year, month] = d.month.split('-');
+      return { ...d, month: `${month}/${year}` };
+    });
+  }, [transactions, revenusVsDepensesPeriod]);
   
   const filteredTransactions = useMemo(() => {
     let filtered = transactions;
@@ -579,32 +574,29 @@ const BudgetApp = () => {
               </div>
               
               <div className={`rounded-3xl p-6 ${darkMode ? 'bg-gray-900' : 'bg-white shadow-lg'}`}>
-                <h3 className={`text-xl font-bold ${textClass} mb-6`}>Top 5 dépenses</h3>
-                <div className="space-y-3">
-                  {topDepenses.map((t, index) => (
-                    <div key={t.id} className="flex items-center gap-3">
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${index === 0 ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white' : darkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>{index + 1}</span>
-                      <span className={`flex-1 ${textClass} truncate`}>{t.libelle}</span>
-                      <span className={`font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{t.montant.toFixed(0)}€</span>
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className={`text-xl font-bold ${textClass}`}>Revenus vs Dépenses</h3>
+                  <select 
+                    value={revenusVsDepensesPeriod} 
+                    onChange={(e) => setRevenusVsDepensesPeriod(e.target.value)} 
+                    className={`px-3 py-1 rounded-lg text-sm ${darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-100 border-gray-200 text-gray-900'} border outline-none`}
+                    style={darkMode ? { colorScheme: 'dark' } : {}}>
+                    <option value="month">Ce mois</option>
+                    <option value="year">Cette année</option>
+                  </select>
                 </div>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={revenusVsDepenses}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
+                    <XAxis dataKey="month" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+                    <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
+                    <Tooltip contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
+                    <Legend />
+                    <Bar dataKey="revenus" fill="#10b981" radius={[12, 12, 0, 0]} />
+                    <Bar dataKey="depenses" fill="#ef4444" radius={[12, 12, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-            </div>
-            
-            <div className={`rounded-3xl p-6 ${darkMode ? 'bg-gray-900' : 'bg-white shadow-lg'}`}>
-              <h3 className={`text-xl font-bold ${textClass} mb-6`}>Revenus vs Dépenses</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={revenusVsDepenses}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
-                  <XAxis dataKey="month" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-                  <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-                  <Tooltip contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
-                  <Legend />
-                  <Bar dataKey="revenus" fill="#10b981" radius={[12, 12, 0, 0]} />
-                  <Bar dataKey="depenses" fill="#ef4444" radius={[12, 12, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
             </div>
           </div>
         )}
@@ -770,9 +762,17 @@ const BudgetApp = () => {
                 <h3 className={`text-xl font-bold ${textClass} mb-4`}>Dépenses</h3>
                 <div className="space-y-3">
                   {categories.depenses.map(cat => (
-                    <div key={cat.id} className={`flex items-center gap-4 p-4 rounded-2xl ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'} transition-all`}>
+                    <div key={cat.id} className={`flex items-center gap-4 p-4 rounded-2xl ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'} transition-all group`}>
                       <MinimalIcon icon={cat.icon} color={cat.color} />
                       <span className={`flex-1 font-medium ${textClass}`}>{cat.nom}</span>
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => { setCategorieToEdit({ ...cat, type: 'depenses' }); setSelectedIcon(cat.icon); setSelectedColor(cat.color); setShowEditCategorie(true); }} className={`${mutedClass} hover:text-blue-500 transition-colors p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl`}>
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => supprimerCategorie(cat.id, 'depenses')} className={`${mutedClass} hover:text-rose-500 transition-colors p-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl`}>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -782,9 +782,17 @@ const BudgetApp = () => {
                 <h3 className={`text-xl font-bold ${textClass} mb-4`}>Revenus</h3>
                 <div className="space-y-3">
                   {categories.revenus.map(cat => (
-                    <div key={cat.id} className={`flex items-center gap-4 p-4 rounded-2xl ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'} transition-all`}>
+                    <div key={cat.id} className={`flex items-center gap-4 p-4 rounded-2xl ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'} transition-all group`}>
                       <MinimalIcon icon={cat.icon} color={cat.color} />
                       <span className={`flex-1 font-medium ${textClass}`}>{cat.nom}</span>
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => { setCategorieToEdit({ ...cat, type: 'revenus' }); setSelectedIcon(cat.icon); setSelectedColor(cat.color); setShowEditCategorie(true); }} className={`${mutedClass} hover:text-blue-500 transition-colors p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl`}>
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => supprimerCategorie(cat.id, 'revenus')} className={`${mutedClass} hover:text-rose-500 transition-colors p-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl`}>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -910,9 +918,9 @@ const BudgetApp = () => {
           </div>
           <div>
             <label className={`${mutedClass} text-sm mb-2 block font-medium`}>Choisir un logo</label>
-            <div className="grid grid-cols-8 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {EMOJIS_COMPTES.map(emoji => (
-                <button key={emoji} onClick={() => setSelectedIcon(emoji)} type="button" className={`text-3xl p-3 rounded-xl transition-all ${selectedIcon === emoji ? 'bg-gradient-to-r from-purple-600 to-blue-600 scale-110' : darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
+                <button key={emoji} onClick={() => setSelectedIcon(emoji)} type="button" className={`text-2xl p-3 rounded-xl transition-all flex items-center justify-center ${selectedIcon === emoji ? 'bg-gradient-to-r from-purple-600 to-blue-600 scale-110' : darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
                   {emoji}
                 </button>
               ))}
@@ -946,9 +954,9 @@ const BudgetApp = () => {
           </div>
           <div>
             <label className={`${mutedClass} text-sm mb-2 block font-medium`}>Choisir un logo</label>
-            <div className="grid grid-cols-8 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {EMOJIS_COMPTES.map(emoji => (
-                <button key={emoji} onClick={() => setSelectedIcon(emoji)} type="button" className={`text-3xl p-3 rounded-xl transition-all ${selectedIcon === emoji ? 'bg-gradient-to-r from-purple-600 to-blue-600 scale-110' : darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
+                <button key={emoji} onClick={() => setSelectedIcon(emoji)} type="button" className={`text-2xl p-3 rounded-xl transition-all flex items-center justify-center ${selectedIcon === emoji ? 'bg-gradient-to-r from-purple-600 to-blue-600 scale-110' : darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
                   {emoji}
                 </button>
               ))}
@@ -1003,9 +1011,9 @@ const BudgetApp = () => {
           </div>
           <div>
             <label className={`${mutedClass} text-sm mb-2 block font-medium`}>Choisir un emoji</label>
-            <div className="grid grid-cols-8 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {EMOJIS_CATEGORIES.map(emoji => (
-                <button key={emoji} onClick={() => setSelectedIcon(emoji)} type="button" className={`text-3xl p-3 rounded-xl transition-all ${selectedIcon === emoji ? 'bg-gradient-to-r from-purple-600 to-blue-600 scale-110' : darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
+                <button key={emoji} onClick={() => setSelectedIcon(emoji)} type="button" className={`text-2xl p-3 rounded-xl transition-all flex items-center justify-center ${selectedIcon === emoji ? 'bg-gradient-to-r from-purple-600 to-blue-600 scale-110' : darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
                   {emoji}
                 </button>
               ))}
@@ -1017,6 +1025,32 @@ const BudgetApp = () => {
           </div>
           <button onClick={ajouterCategorie} className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-2xl font-semibold hover:shadow-lg transition-all">
             Créer la catégorie
+          </button>
+        </div>
+      </Modal>
+
+      <Modal show={showEditCategorie} onClose={() => { setShowEditCategorie(false); setCategorieToEdit(null); }} title="Modifier la catégorie" darkMode={darkMode}>
+        <div className="space-y-4">
+          <div>
+            <label className={`${mutedClass} text-sm mb-2 block font-medium`}>Nom de la catégorie</label>
+            <input type="text" id="editCatNom" defaultValue={categorieToEdit?.nom} placeholder="Ex: Alimentation" className={inputClass} />
+          </div>
+          <div>
+            <label className={`${mutedClass} text-sm mb-2 block font-medium`}>Choisir un emoji</label>
+            <div className="grid grid-cols-5 gap-2">
+              {EMOJIS_CATEGORIES.map(emoji => (
+                <button key={emoji} onClick={() => setSelectedIcon(emoji)} type="button" className={`text-2xl p-3 rounded-xl transition-all flex items-center justify-center ${selectedIcon === emoji ? 'bg-gradient-to-r from-purple-600 to-blue-600 scale-110' : darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className={`${mutedClass} text-sm mb-2 block font-medium`}>Couleur</label>
+            <input type="color" value={selectedColor} onChange={(e) => setSelectedColor(e.target.value)} className="w-full h-12 rounded-xl cursor-pointer" />
+          </div>
+          <button onClick={modifierCategorie} className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-2xl font-semibold hover:shadow-lg transition-all">
+            Modifier la catégorie
           </button>
         </div>
       </Modal>
