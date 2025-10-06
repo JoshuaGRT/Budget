@@ -115,11 +115,14 @@ const BudgetApp = () => {
   const [compteToEdit, setCompteToEdit] = useState(null);
   const [showAddObjectif, setShowAddObjectif] = useState(false);
   const [showAddCategorie, setShowAddCategorie] = useState(false);
+  const [showEditCategorie, setShowEditCategorie] = useState(false);
+  const [categorieToEdit, setCategorieToEdit] = useState(null);
   const [categorieType, setCategorieType] = useState('depenses');
   const [selectedIcon, setSelectedIcon] = useState('💳');
   const [selectedColor, setSelectedColor] = useState('#8B3DFF');
   const [selectedTags, setSelectedTags] = useState([]);
   const [isRecurrente, setIsRecurrente] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState('6months');
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -228,8 +231,17 @@ const BudgetApp = () => {
       if (t.montant > 0) monthlyData[month].revenus += t.montant;
       else monthlyData[month].depenses += Math.abs(t.montant);
     });
-    return Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month)).slice(-6);
-  }, [transactions]);
+    
+    const sorted = Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
+    
+    if (selectedPeriod === '6months') {
+      return sorted.slice(-6).map(d => ({ ...d, month: d.month.split('-').reverse().join('/') }));
+    } else if (selectedPeriod === 'year') {
+      return sorted.slice(-12).map(d => ({ ...d, month: d.month.split('-').reverse().join('/') }));
+    } else {
+      return sorted.map(d => ({ ...d, month: d.month.split('-').reverse().join('/') }));
+    }
+  }, [transactions, selectedPeriod]);
   
   const filteredTransactions = useMemo(() => {
     let filtered = transactions;
@@ -367,6 +379,26 @@ const BudgetApp = () => {
     setSelectedIcon('🍕');
     setSelectedColor('#8B3DFF');
   }, [setCategories, categorieType, selectedIcon, selectedColor]);
+  
+  const modifierCategorie = useCallback(() => {
+    const nom = document.getElementById('editCatNom')?.value;
+    if (!nom || !categorieToEdit) return;
+    
+    const type = categorieToEdit.type;
+    setCategories(prev => ({
+      ...prev,
+      [type]: prev[type].map(c => c.id === categorieToEdit.id ? { ...c, nom, icon: selectedIcon, color: selectedColor } : c)
+    }));
+    setShowEditCategorie(false);
+    setCategorieToEdit(null);
+  }, [setCategories, categorieToEdit, selectedIcon, selectedColor]);
+  
+  const supprimerCategorie = useCallback((id, type) => {
+    setCategories(prev => ({
+      ...prev,
+      [type]: prev[type].filter(c => c.id !== id)
+    }));
+  }, [setCategories]);
   
   const comptesAvecSoldes = useMemo(() => {
     return comptes.map(compte => {
