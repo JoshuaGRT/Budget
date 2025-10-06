@@ -11,7 +11,6 @@ const useLocalStorage = (key, initialValue) => {
 const EMOJIS_COMPTES = ['💳', '📘', '👴', '🏡', '₿', '📊', '💰', '🏦', '💎', '🎯', '🚀', '🌟', '💵', '🏪', '🎁'];
 const EMOJIS_CATEGORIES = ['🍕', '🏠', '🚗', '🎮', '✈️', '🏥', '📚', '🎬', '💼', '💻', '🎨', '⚽', '🍔', '👕', '🎵'];
 
-// Logo animé pétillant
 const SparklingLogo = memo(({ icon, color, size = 'md' }) => {
   const sizes = {
     sm: 'w-10 h-10 text-2xl',
