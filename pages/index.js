@@ -549,7 +549,8 @@ const BudgetApp = () => {
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="date" stroke="#ffffff80" tick={{ fill: '#ffffff', fontSize: 12 }} />
-                    <YAxis stroke="#ffffff80" tick={{ fill: '#ffffff', fontSize: 12 }} />
+                    <YAxis stroke="#ffffff80" tick={{ fill: '#ffffff', fontSize: 12 }} tickFormatter={(value) => `${value}€`} />
+                    <Tooltip formatter={(value) => `${value}€`} contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '12px' }} />
                     <Area type="monotone" dataKey="patrimoine" stroke="#ffffff" strokeWidth={2} fill="url(#gradient)" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -567,7 +568,7 @@ const BudgetApp = () => {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
+                      <Tooltip formatter={(value) => `${value}€`} contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
                     </PieChart>
                   </ResponsiveContainer>
                 )}
@@ -589,8 +590,8 @@ const BudgetApp = () => {
                   <BarChart data={revenusVsDepenses}>
                     <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
                     <XAxis dataKey="month" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-                    <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-                    <Tooltip contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
+                    <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tickFormatter={(value) => `${value}€`} />
+                    <Tooltip formatter={(value) => `${value}€`} contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
                     <Legend />
                     <Bar dataKey="revenus" fill="#10b981" radius={[12, 12, 0, 0]} />
                     <Bar dataKey="depenses" fill="#ef4444" radius={[12, 12, 0, 0]} />
@@ -683,8 +684,7 @@ const BudgetApp = () => {
                       </button>
                     </div>
                   </div>
-                  <div className={`text-3xl font-bold mb-2 ${textClass}`}>{compte.soldeActuel.toFixed(2)}€</div>
-                  <div className={`text-sm ${mutedClass}`}>Solde initial: {compte.soldeInitial.toFixed(2)}€</div>
+                  <div className={`text-3xl font-bold ${textClass}`}>{compte.soldeActuel.toFixed(2)}€</div>
                 </div>
               ))}
             </div>
@@ -821,8 +821,8 @@ const BudgetApp = () => {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
                     <XAxis dataKey="date" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-                    <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} />
-                    <Tooltip contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
+                    <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tickFormatter={(value) => `${value}€`} />
+                    <Tooltip formatter={(value) => `${value}€`} contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
                     <Area type="monotone" dataKey="patrimoine" stroke="#8B3DFF" strokeWidth={3} fill="url(#gradient2)" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -833,12 +833,13 @@ const BudgetApp = () => {
                 {depensesParCategorie.length > 0 && (
                   <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
-                      <Pie data={depensesParCategorie} cx="50%" cy="50%" outerRadius={80} dataKey="value" label>
+                      <Pie data={depensesParCategorie} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, value }) => `${name}: ${value}€`}>
                         {depensesParCategorie.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
+                      <Tooltip formatter={(value) => `${value}€`} contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
+                      <Legend />
                     </PieChart>
                   </ResponsiveContainer>
                 )}
