@@ -122,8 +122,10 @@ const BudgetApp = () => {
   const [selectedColor, setSelectedColor] = useState('#8B3DFF');
   const [selectedTags, setSelectedTags] = useState([]);
   const [isRecurrente, setIsRecurrente] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState('6months');
+  const [evolutionPeriod, setEvolutionPeriod] = useState('6months');
   const [revenusVsDepensesPeriod, setRevenusVsDepensesPeriod] = useState('month');
+  const [depensesPeriod, setDepensesPeriod] = useState('all');
+  const [analyticsPeriod, setAnalyticsPeriod] = useState('6months');
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -258,14 +260,29 @@ const BudgetApp = () => {
   }, [transactions, searchTerm, filterPeriod]);
   
   const depensesParCategorie = useMemo(() => {
-    const depenses = transactions.filter(t => t.montant < 0);
+    let filteredTrans = transactions.filter(t => t.montant < 0);
+    
+    if (depensesPeriod !== 'all') {
+      const now = new Date();
+      if (depensesPeriod === '3months') {
+        const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+        filteredTrans = filteredTrans.filter(t => new Date(t.date) >= threeMonthsAgo);
+      } else if (depensesPeriod === '6months') {
+        const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+        filteredTrans = filteredTrans.filter(t => new Date(t.date) >= sixMonthsAgo);
+      } else if (depensesPeriod === 'year') {
+        const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+        filteredTrans = filteredTrans.filter(t => new Date(t.date) >= oneYearAgo);
+      }
+    }
+    
     const parCategorie = {};
-    depenses.forEach(t => {
+    filteredTrans.forEach(t => {
       if (!parCategorie[t.categorie]) parCategorie[t.categorie] = 0;
       parCategorie[t.categorie] += Math.abs(t.montant);
     });
     return Object.entries(parCategorie).map(([name, value]) => ({ name, value }));
-  }, [transactions]);
+  }, [transactions, depensesPeriod]);
   
   const chartData = useMemo(() => {
     const sorted = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -279,8 +296,41 @@ const BudgetApp = () => {
       monthlyData[month] = patrimoine;
     });
     
-    return Object.entries(monthlyData).slice(-6).map(([date, patrimoine]) => ({ date, patrimoine }));
-  }, [comptes, transactions]);
+    const entries = Object.entries(monthlyData);
+    let sliceAmount = 6;
+    
+    if (evolutionPeriod === '3months') sliceAmount = 3;
+    else if (evolutionPeriod === '6months') sliceAmount = 6;
+    else if (evolutionPeriod === 'year') sliceAmount = 12;
+    else if (evolutionPeriod === '2years') sliceAmount = 24;
+    else if (evolutionPeriod === 'all') sliceAmount = entries.length;
+    
+    return entries.slice(-sliceAmount).map(([date, patrimoine]) => ({ date, patrimoine }));
+  }, [comptes, transactions, evolutionPeriod]);
+  
+  const analyticsChartData = useMemo(() => {
+    const sorted = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+    const initial = comptes.reduce((sum, c) => sum + c.soldeInitial, 0);
+    let patrimoine = initial;
+    const monthlyData = { 'Initial': initial };
+    
+    sorted.forEach(t => {
+      patrimoine += t.montant;
+      const month = t.date.slice(0, 7);
+      monthlyData[month] = patrimoine;
+    });
+    
+    const entries = Object.entries(monthlyData);
+    let sliceAmount = 6;
+    
+    if (analyticsPeriod === '3months') sliceAmount = 3;
+    else if (analyticsPeriod === '6months') sliceAmount = 6;
+    else if (analyticsPeriod === 'year') sliceAmount = 12;
+    else if (analyticsPeriod === '2years') sliceAmount = 24;
+    else if (analyticsPeriod === 'all') sliceAmount = entries.length;
+    
+    return entries.slice(-sliceAmount).map(([date, patrimoine]) => ({ date, patrimoine }));
+  }, [comptes, transactions, analyticsPeriod]);
   
   const handleFABAction = useCallback((action) => {
     if (action === 'transaction') setShowAddTransaction(true);
@@ -536,9 +586,18 @@ const BudgetApp = () => {
               </div>
               
               <div className={`rounded-3xl p-6 ${darkMode ? 'bg-gradient-to-br from-purple-900 to-blue-900' : 'bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg'}`}>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-white">Évolution</h3>
-                  <TrendingUp className="w-5 h-5 text-white/80" />
+                  <select 
+                    value={evolutionPeriod} 
+                    onChange={(e) => setEvolutionPeriod(e.target.value)} 
+                    className="px-2 py-1 rounded-lg text-xs bg-white/20 text-white border border-white/30 outline-none">
+                    <option value="3months" className="text-gray-900">3 mois</option>
+                    <option value="6months" className="text-gray-900">6 mois</option>
+                    <option value="year" className="text-gray-900">1 an</option>
+                    <option value="2years" className="text-gray-900">2 ans</option>
+                    <option value="all" className="text-gray-900">Tout</option>
+                  </select>
                 </div>
                 <ResponsiveContainer width="100%" height={200}>
                   <AreaChart data={chartData}>
@@ -559,7 +618,19 @@ const BudgetApp = () => {
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               <div className={`rounded-3xl p-6 ${darkMode ? 'bg-gray-900' : 'bg-white shadow-lg'}`}>
-                <h3 className={`text-xl font-bold ${textClass} mb-6`}>Dépenses par catégorie</h3>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className={`text-xl font-bold ${textClass}`}>Dépenses par catégorie</h3>
+                  <select 
+                    value={depensesPeriod} 
+                    onChange={(e) => setDepensesPeriod(e.target.value)} 
+                    className={`px-3 py-1 rounded-lg text-sm ${darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-100 border-gray-200 text-gray-900'} border outline-none`}
+                    style={darkMode ? { colorScheme: 'dark' } : {}}>
+                    <option value="3months">3 mois</option>
+                    <option value="6months">6 mois</option>
+                    <option value="year">1 an</option>
+                    <option value="all">Tout</option>
+                  </select>
+                </div>
                 {depensesParCategorie.length > 0 && (
                   <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
@@ -810,9 +881,22 @@ const BudgetApp = () => {
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className={`rounded-3xl p-6 ${darkMode ? 'bg-gray-900' : 'bg-white shadow-lg'}`}>
-                <h3 className={`text-xl font-bold ${textClass} mb-6`}>Évolution patrimoine</h3>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className={`text-xl font-bold ${textClass}`}>Évolution patrimoine</h3>
+                  <select 
+                    value={analyticsPeriod} 
+                    onChange={(e) => setAnalyticsPeriod(e.target.value)} 
+                    className={`px-3 py-1 rounded-lg text-sm ${darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-100 border-gray-200 text-gray-900'} border outline-none`}
+                    style={darkMode ? { colorScheme: 'dark' } : {}}>
+                    <option value="3months">3 mois</option>
+                    <option value="6months">6 mois</option>
+                    <option value="year">1 an</option>
+                    <option value="2years">2 ans</option>
+                    <option value="all">Tout</option>
+                  </select>
+                </div>
                 <ResponsiveContainer width="100%" height={250}>
-                  <AreaChart data={chartData}>
+                  <AreaChart data={analyticsChartData}>
                     <defs>
                       <linearGradient id="gradient2" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#8B3DFF" stopOpacity={0.3} />
