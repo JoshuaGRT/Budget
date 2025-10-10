@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { Menu, Home, CreditCard, Target, Wallet, TrendingUp, TrendingDown, Plus, X, ArrowRight, Calendar, Trash2, Edit, Tag, Bell, Download, Search, BarChart3, Sun, Moon, Repeat, Filter } from 'lucide-react';
+import { Menu, Home, CreditCard, Target, Wallet, TrendingUp, TrendingDown, Plus, X, ArrowRight, Calendar, Trash2, Edit, Tag, Bell, Download, Search, BarChart3, Sun, Moon, Repeat, Filter, LogOut } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { useAuth } from '../lib/AuthContext';
+import { useRouter } from 'next/router';
 
 const useLocalStorage = (key, initialValue) => {
   const [storedValue, setStoredValue] = useState(() => initialValue);
@@ -63,7 +65,7 @@ const TransactionItem = memo(({ transaction, categories, onDelete, darkMode }) =
       </div>
       <div className="flex items-center gap-4">
         <div className={`text-lg font-bold ${isPositive ? 'text-emerald-500' : darkMode ? 'text-white' : 'text-gray-900'}`}>
-          {isPositive ? '+' : ''}{transaction.montant.toFixed(0)}€
+          {isPositive ? '+' : ''}{Math.floor(transaction.montant)}€
         </div>
         <button 
           onClick={(e) => { e.stopPropagation(); onDelete(transaction.id); }}
@@ -102,6 +104,9 @@ const Modal = memo(({ show, onClose, title, children, darkMode }) => {
 });
 
 const BudgetApp = () => {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentView, setCurrentView] = useState('dashboard');
   const [darkMode, setDarkMode] = useLocalStorage('darkMode', false);
@@ -114,6 +119,8 @@ const BudgetApp = () => {
   const [showEditCompte, setShowEditCompte] = useState(false);
   const [compteToEdit, setCompteToEdit] = useState(null);
   const [showAddObjectif, setShowAddObjectif] = useState(false);
+  const [showEditObjectif, setShowEditObjectif] = useState(false);
+  const [objectifToEdit, setObjectifToEdit] = useState(null);
   const [showAddCategorie, setShowAddCategorie] = useState(false);
   const [showEditCategorie, setShowEditCategorie] = useState(false);
   const [categorieToEdit, setCategorieToEdit] = useState(null);
@@ -139,13 +146,14 @@ const BudgetApp = () => {
     { value: 'per', label: 'PER', icon: '👴' },
     { value: 'pel', label: 'PEL', icon: '🏡' },
     { value: 'crypto', label: 'Crypto', icon: '₿' },
-    { value: 'trade_republic', label: 'Trade Republic', icon: '📊' },
+    { value: 'investissement_long_terme', label: 'Investissement long terme', icon: '📊' },
+    { value: 'assurance_vie', label: 'Assurance vie', icon: '🛡️' },
     { value: 'autre', label: 'Autre', icon: '🏦' }
   ]);
   
   const [comptes, setComptes] = useLocalStorage('comptes', [
     { id: 1, nom: 'Compte courant', type: 'courant', soldeInitial: 2500, icon: '💳', color: '#8B3DFF' },
-    { id: 2, nom: 'PEA', type: 'trade_republic', soldeInitial: 5000, icon: '📊', color: '#10b981' },
+    { id: 2, nom: 'PEA', type: 'investissement_long_terme', soldeInitial: 5000, icon: '📊', color: '#10b981' },
     { id: 3, nom: 'Livret A', type: 'livret_a', soldeInitial: 3000, icon: '📘', color: '#3b82f6' }
   ]);
   
@@ -332,6 +340,15 @@ const BudgetApp = () => {
     return entries.slice(-sliceAmount).map(([date, patrimoine]) => ({ date, patrimoine }));
   }, [comptes, transactions, analyticsPeriod]);
   
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Erreur de déconnexion:', error);
+    }
+  };
+  
   const handleFABAction = useCallback((action) => {
     if (action === 'transaction') setShowAddTransaction(true);
     if (action === 'compte') setShowAddCompte(true);
@@ -410,6 +427,23 @@ const BudgetApp = () => {
     
     setObjectifs(prev => [...prev, { id: Date.now(), nom, montantCible, montantActuel, dateObjectif }]);
     setShowAddObjectif(false);
+  }, [setObjectifs]);
+  
+  const modifierObjectif = useCallback(() => {
+    const nom = document.getElementById('editObjNom')?.value;
+    const montantCible = parseFloat(document.getElementById('editObjCible')?.value) || 0;
+    const montantActuel = parseFloat(document.getElementById('editObjActuel')?.value) || 0;
+    const dateObjectif = document.getElementById('editObjDate')?.value;
+    
+    if (!nom || montantCible === 0 || !objectifToEdit) return;
+    
+    setObjectifs(prev => prev.map(o => o.id === objectifToEdit.id ? { ...o, nom, montantCible, montantActuel, dateObjectif } : o));
+    setShowEditObjectif(false);
+    setObjectifToEdit(null);
+  }, [setObjectifs, objectifToEdit]);
+  
+  const supprimerObjectif = useCallback((id) => {
+    setObjectifs(prev => prev.filter(o => o.id !== id));
   }, [setObjectifs]);
   
   const ajouterCategorie = useCallback(() => {
@@ -514,22 +548,23 @@ const BudgetApp = () => {
           ))}
         </nav>
         
-        <div className={`p-4 border-t ${darkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+        <div className={`p-4 border-t ${darkMode ? 'border-gray-800' : 'border-gray-200'} space-y-2`}>
           <button onClick={() => setDarkMode(!darkMode)} className={`w-full flex items-center ${sidebarOpen ? 'justify-start' : 'justify-center'} gap-2 px-4 py-3 rounded-2xl transition-all ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-100 hover:bg-gray-200'} ${mutedClass}`}>
             {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             {sidebarOpen && <span className="text-sm font-medium">{darkMode ? 'Mode clair' : 'Mode sombre'}</span>}
+          </button>
+          
+          <button onClick={handleLogout} className={`w-full flex items-center ${sidebarOpen ? 'justify-start' : 'justify-center'} gap-2 px-4 py-3 rounded-2xl transition-all ${darkMode ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400' : 'bg-red-50 hover:bg-red-100 text-red-600'}`}>
+            <LogOut className="w-5 h-5" />
+            {sidebarOpen && <span className="text-sm font-medium">Déconnexion</span>}
           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-auto">
         {currentView === 'dashboard' && (
-          <div className="max-w-7xl mx-auto p-8">
-            <div className="mb-8 flex items-center justify-between">
-              <div>
-                <h1 className={`text-4xl font-bold ${textClass} mb-2`}>Bonjour 👋</h1>
-                <p className={mutedClass}>Voici votre situation financière</p>
-              </div>
+          <div className="w-full p-8">
+            <div className="mb-6 flex items-center justify-end">
               <div className="flex gap-2">
                 {budgetAlerts.length > 0 && (
                   <button onClick={() => setShowAlerts(!showAlerts)} className={`relative flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${darkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-white hover:bg-gray-100 shadow-md'} ${mutedClass}`}>
@@ -556,23 +591,23 @@ const BudgetApp = () => {
                     <Bell className="text-orange-500 animate-bounce" />
                     <div className="flex-1">
                       <p className={`font-semibold ${textClass}`}>Budget {alert.categorie} dépassé à {alert.pct.toFixed(0)}%</p>
-                      <p className={`text-sm ${mutedClass}`}>{alert.depenses.toFixed(0)}€ / {alert.montantMax}€</p>
+                      <p className={`text-sm ${mutedClass}`}>{Math.floor(alert.depenses)}€ / {alert.montantMax}€</p>
                     </div>
                   </div>
                 ))}
               </div>
             )}
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <StatCard label="Patrimoine total" value={`${stats.soldeTotal.toFixed(0)}€`} darkMode={darkMode} />
-              <StatCard label="Revenus du mois" value={`${stats.totalRevenus.toFixed(0)}€`} trend={stats.trendRevenus} isPositive={true} darkMode={darkMode} />
-              <StatCard label="Dépenses du mois" value={`${stats.totalDepenses.toFixed(0)}€`} trend={stats.trendDepenses} isPositive={false} darkMode={darkMode} />
-              <StatCard label="Épargne" value={`${stats.epargne.toFixed(0)}€`} isPositive={stats.epargne >= 0} darkMode={darkMode} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <StatCard label="Patrimoine total" value={`${Math.floor(stats.soldeTotal)}€`} darkMode={darkMode} />
+              <StatCard label="Revenus du mois" value={`${Math.floor(stats.totalRevenus)}€`} trend={stats.trendRevenus} isPositive={true} darkMode={darkMode} />
+              <StatCard label="Dépenses du mois" value={`${Math.floor(stats.totalDepenses)}€`} trend={stats.trendDepenses} isPositive={false} darkMode={darkMode} />
+              <StatCard label="Épargne" value={`${Math.floor(stats.epargne)}€`} isPositive={stats.epargne >= 0} darkMode={darkMode} />
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
               <div className={`lg:col-span-2 rounded-3xl p-6 ${darkMode ? 'bg-gray-900' : 'bg-white shadow-lg'}`}>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4">
                   <h2 className={`text-xl font-bold ${textClass}`}>Transactions récentes</h2>
                   <button onClick={() => setCurrentView('transactions')} className="text-purple-600 text-sm flex items-center gap-1 hover:gap-2 transition-all font-medium">
                     Voir tout <ArrowRight className="w-4 h-4" />
@@ -585,7 +620,7 @@ const BudgetApp = () => {
                 </div>
               </div>
               
-              <div className={`rounded-3xl p-6 ${darkMode ? 'bg-gradient-to-br from-purple-900 to-blue-900' : 'bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg'}`}>
+              <div className={`lg:col-span-3 rounded-3xl p-6 ${darkMode ? 'bg-gradient-to-br from-purple-900 to-blue-900' : 'bg-gradient-to-br from-purple-500 to-blue-500 shadow-lg'}`}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-white">Évolution</h3>
                   <select 
@@ -599,7 +634,7 @@ const BudgetApp = () => {
                     <option value="all" className="text-gray-900">Tout</option>
                   </select>
                 </div>
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
@@ -616,9 +651,9 @@ const BudgetApp = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
               <div className={`rounded-3xl p-6 ${darkMode ? 'bg-gray-900' : 'bg-white shadow-lg'}`}>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-xl font-bold ${textClass}`}>Dépenses par catégorie</h3>
                   <select 
                     value={depensesPeriod} 
@@ -632,21 +667,21 @@ const BudgetApp = () => {
                   </select>
                 </div>
                 {depensesParCategorie.length > 0 && (
-                  <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
-                      <Pie data={depensesParCategorie} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={80} dataKey="value">
+                      <Pie data={depensesParCategorie} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={100} dataKey="value">
                         {depensesParCategorie.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => `${value}€`} contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
+                      <Tooltip formatter={(value) => `${Math.floor(value)}€`} contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
                     </PieChart>
                   </ResponsiveContainer>
                 )}
               </div>
               
               <div className={`rounded-3xl p-6 ${darkMode ? 'bg-gray-900' : 'bg-white shadow-lg'}`}>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-4">
                   <h3 className={`text-xl font-bold ${textClass}`}>Revenus vs Dépenses</h3>
                   <select 
                     value={revenusVsDepensesPeriod} 
@@ -657,12 +692,12 @@ const BudgetApp = () => {
                     <option value="year">Cette année</option>
                   </select>
                 </div>
-                <ResponsiveContainer width="100%" height={250}>
+                <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={revenusVsDepenses}>
                     <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
                     <XAxis dataKey="month" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
                     <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tickFormatter={(value) => `${value}€`} />
-                    <Tooltip formatter={(value) => `${value}€`} contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
+                    <Tooltip formatter={(value) => `${Math.floor(value)}€`} contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
                     <Legend />
                     <Bar dataKey="revenus" fill="#10b981" radius={[12, 12, 0, 0]} />
                     <Bar dataKey="depenses" fill="#ef4444" radius={[12, 12, 0, 0]} />
@@ -674,8 +709,8 @@ const BudgetApp = () => {
         )}
         
         {currentView === 'transactions' && (
-          <div className="max-w-7xl mx-auto p-8">
-            <div className="mb-8 flex items-center justify-between">
+          <div className="w-full p-8">
+            <div className="mb-6 flex items-center justify-between">
               <div>
                 <h1 className={`text-4xl font-bold ${textClass} mb-2`}>Transactions</h1>
                 <p className={mutedClass}>Historique complet de vos opérations</p>
@@ -721,8 +756,8 @@ const BudgetApp = () => {
         )}
         
         {currentView === 'comptes' && (
-          <div className="max-w-7xl mx-auto p-8">
-            <div className="mb-8 flex items-center justify-between">
+          <div className="w-full p-8">
+            <div className="mb-6 flex items-center justify-between">
               <div>
                 <h1 className={`text-4xl font-bold ${textClass} mb-2`}>Mes comptes</h1>
                 <p className={mutedClass}>Gérez tous vos comptes en un seul endroit</p>
@@ -755,7 +790,7 @@ const BudgetApp = () => {
                       </button>
                     </div>
                   </div>
-                  <div className={`text-3xl font-bold ${textClass}`}>{compte.soldeActuel.toFixed(2)}€</div>
+                  <div className={`text-3xl font-bold ${textClass}`}>{Math.floor(compte.soldeActuel)}€</div>
                 </div>
               ))}
             </div>
@@ -763,8 +798,8 @@ const BudgetApp = () => {
         )}
         
         {currentView === 'objectifs' && (
-          <div className="max-w-7xl mx-auto p-8">
-            <div className="mb-8 flex items-center justify-between">
+          <div className="w-full p-8">
+            <div className="mb-6 flex items-center justify-between">
               <div>
                 <h1 className={`text-4xl font-bold ${textClass} mb-2`}>Objectifs</h1>
                 <p className={mutedClass}>Atteignez vos objectifs financiers</p>
@@ -779,7 +814,7 @@ const BudgetApp = () => {
               {objectifs.map(obj => {
                 const progress = (obj.montantActuel / obj.montantCible) * 100;
                 return (
-                  <div key={obj.id} className={`rounded-3xl p-8 hover:scale-105 transition-all ${darkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900' : 'bg-white shadow-lg'}`}>
+                  <div key={obj.id} className={`rounded-3xl p-8 hover:scale-105 transition-all ${darkMode ? 'bg-gradient-to-br from-gray-800 to-gray-900' : 'bg-white shadow-lg'} group`}>
                     <div className="flex items-start justify-between mb-6">
                       <div>
                         <div className={`text-2xl font-bold mb-2 ${textClass}`}>{obj.nom}</div>
@@ -788,8 +823,13 @@ const BudgetApp = () => {
                           {new Date(obj.dateObjectif).toLocaleDateString('fr-FR')}
                         </div>
                       </div>
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center">
-                        <Target className="w-6 h-6 text-white" />
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => { setObjectifToEdit(obj); setShowEditObjectif(true); }} className={`${mutedClass} hover:text-blue-500 transition-colors p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl`}>
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => supprimerObjectif(obj.id)} className={`${mutedClass} hover:text-rose-500 transition-colors p-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl`}>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                     <div className={`relative h-3 rounded-full mb-4 overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
@@ -801,11 +841,11 @@ const BudgetApp = () => {
                     <div className={`flex items-center justify-between pt-4 border-t ${darkMode ? 'border-gray-800' : 'border-gray-100'}`}>
                       <div>
                         <p className={`text-xs ${mutedClass} mb-1`}>Actuel</p>
-                        <p className={`font-bold ${textClass}`}>{obj.montantActuel.toFixed(0)}€</p>
+                        <p className={`font-bold ${textClass}`}>{Math.floor(obj.montantActuel)}€</p>
                       </div>
                       <div className="text-right">
                         <p className={`text-xs ${mutedClass} mb-1`}>Objectif</p>
-                        <p className={`font-bold ${textClass}`}>{obj.montantCible.toFixed(0)}€</p>
+                        <p className={`font-bold ${textClass}`}>{Math.floor(obj.montantCible)}€</p>
                       </div>
                     </div>
                   </div>
@@ -816,8 +856,8 @@ const BudgetApp = () => {
         )}
         
         {currentView === 'categories' && (
-          <div className="max-w-7xl mx-auto p-8">
-            <div className="mb-8 flex items-center justify-between">
+          <div className="w-full p-8">
+            <div className="mb-6 flex items-center justify-between">
               <div>
                 <h1 className={`text-4xl font-bold ${textClass} mb-2`}>Catégories</h1>
                 <p className={mutedClass}>Organisez vos transactions</p>
@@ -873,8 +913,8 @@ const BudgetApp = () => {
         )}
         
         {currentView === 'analytics' && (
-          <div className="max-w-7xl mx-auto p-8">
-            <div className="mb-8">
+          <div className="w-full p-8">
+            <div className="mb-6">
               <h1 className={`text-4xl font-bold ${textClass} mb-2`}>Analytics</h1>
               <p className={mutedClass}>Analyses détaillées de vos finances</p>
             </div>
@@ -895,7 +935,7 @@ const BudgetApp = () => {
                     <option value="all">Tout</option>
                   </select>
                 </div>
-                <ResponsiveContainer width="100%" height={250}>
+                <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={analyticsChartData}>
                     <defs>
                       <linearGradient id="gradient2" x1="0" y1="0" x2="0" y2="1">
@@ -906,7 +946,7 @@ const BudgetApp = () => {
                     <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#e5e7eb'} />
                     <XAxis dataKey="date" stroke={darkMode ? '#9ca3af' : '#6b7280'} />
                     <YAxis stroke={darkMode ? '#9ca3af' : '#6b7280'} tickFormatter={(value) => `${value}€`} />
-                    <Tooltip formatter={(value) => `${value}€`} contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
+                    <Tooltip formatter={(value) => `${Math.floor(value)}€`} contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
                     <Area type="monotone" dataKey="patrimoine" stroke="#8B3DFF" strokeWidth={3} fill="url(#gradient2)" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -915,14 +955,14 @@ const BudgetApp = () => {
               <div className={`rounded-3xl p-6 ${darkMode ? 'bg-gray-900' : 'bg-white shadow-lg'}`}>
                 <h3 className={`text-xl font-bold ${textClass} mb-6`}>Répartition dépenses</h3>
                 {depensesParCategorie.length > 0 && (
-                  <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
-                      <Pie data={depensesParCategorie} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, value }) => `${name}: ${value}€`}>
+                      <Pie data={depensesParCategorie} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, value }) => `${name}: ${Math.floor(value)}€`}>
                         {depensesParCategorie.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => `${value}€`} contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
+                      <Tooltip formatter={(value) => `${Math.floor(value)}€`} contentStyle={{ backgroundColor: darkMode ? '#1f2937' : '#ffffff', border: 'none', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
@@ -1081,6 +1121,30 @@ const BudgetApp = () => {
         </div>
       </Modal>
       
+      <Modal show={showEditObjectif} onClose={() => { setShowEditObjectif(false); setObjectifToEdit(null); }} title="Modifier l'objectif" darkMode={darkMode}>
+        <div className="space-y-4">
+          <div>
+            <label className={`${mutedClass} text-sm mb-2 block font-medium`}>Nom de l'objectif</label>
+            <input type="text" id="editObjNom" defaultValue={objectifToEdit?.nom} placeholder="Ex: Vacances été" className={inputClass} />
+          </div>
+          <div>
+            <label className={`${mutedClass} text-sm mb-2 block font-medium`}>Montant cible (€)</label>
+            <input type="number" id="editObjCible" defaultValue={objectifToEdit?.montantCible} placeholder="0.00" step="0.01" className={inputClass} />
+          </div>
+          <div>
+            <label className={`${mutedClass} text-sm mb-2 block font-medium`}>Montant actuel (€)</label>
+            <input type="number" id="editObjActuel" defaultValue={objectifToEdit?.montantActuel} placeholder="0.00" step="0.01" className={inputClass} />
+          </div>
+          <div>
+            <label className={`${mutedClass} text-sm mb-2 block font-medium`}>Date objectif</label>
+            <input type="date" id="editObjDate" defaultValue={objectifToEdit?.dateObjectif} className={inputClass} />
+          </div>
+          <button onClick={modifierObjectif} className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-2xl font-semibold hover:shadow-lg transition-all">
+            Modifier l'objectif
+          </button>
+        </div>
+      </Modal>
+      
       <Modal show={showAddCategorie} onClose={() => setShowAddCategorie(false)} title="Nouvelle catégorie" darkMode={darkMode}>
         <div className="space-y-4">
           <div>
@@ -1143,4 +1207,26 @@ const BudgetApp = () => {
   );
 };
 
-export default BudgetApp;
+export default function ProtectedBudgetApp() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
+    }
+  }, [user, router]);
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <BudgetApp />;
+}
