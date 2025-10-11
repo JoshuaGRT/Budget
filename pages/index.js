@@ -3,6 +3,7 @@ import { Menu, Home, CreditCard, Target, Wallet, TrendingUp, TrendingDown, Plus,
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { useAuth } from '../lib/AuthContext';
 import { useRouter } from 'next/router';
+import { useFirebaseData } from '../lib/useFirebaseData';
 
 const useLocalStorage = (key, initialValue) => {
   const [storedValue, setStoredValue] = useState(() => initialValue);
@@ -151,29 +152,29 @@ const BudgetApp = () => {
     { value: 'autre', label: 'Autre', icon: '🏦' }
   ]);
   
-  const [comptes, setComptes] = useLocalStorage('comptes', [
+  const [comptes, setComptes, loadingComptes] = useFirebaseData(user, 'comptes', [
     { id: 1, nom: 'Compte courant', type: 'courant', soldeInitial: 2500, icon: '💳', color: '#8B3DFF' },
     { id: 2, nom: 'PEA', type: 'investissement_long_terme', soldeInitial: 5000, icon: '📊', color: '#10b981' },
     { id: 3, nom: 'Livret A', type: 'livret_a', soldeInitial: 3000, icon: '📘', color: '#3b82f6' }
   ]);
   
-  const [transactions, setTransactions] = useLocalStorage('transactions', [
+  const [transactions, setTransactions, loadingTransactions] = useFirebaseData(user, 'transactions', [
     { id: 1, date: '2025-10-01', libelle: 'Salaire', montant: 2500, type: 'REVENUS', categorie: 'Salaire', compteId: 1, tags: [], recurrente: true },
     { id: 2, date: '2025-10-01', libelle: 'Loyer', montant: -800, type: 'DÉPENSES', categorie: 'Logement', compteId: 1, tags: ['Fixe'], recurrente: true },
     { id: 3, date: '2025-10-02', libelle: 'Courses Carrefour', montant: -120, type: 'DÉPENSES', categorie: 'Alimentation', compteId: 1, tags: [] },
     { id: 4, date: '2025-10-03', libelle: 'Restaurant', montant: -45, type: 'DÉPENSES', categorie: 'Loisirs', compteId: 1, tags: ['Sortie'] }
   ]);
   
-  const [objectifs, setObjectifs] = useLocalStorage('objectifs', [
+  const [objectifs, setObjectifs, loadingObjectifs] = useFirebaseData(user, 'objectifs', [
     { id: 1, nom: 'Vacances été', montantCible: 2000, montantActuel: 1600, dateObjectif: '2025-07-01' },
     { id: 2, nom: 'Nouvelle voiture', montantCible: 15000, montantActuel: 8500, dateObjectif: '2026-01-01' }
   ]);
   
-  const [budgets, setBudgets] = useLocalStorage('budgets', [
+  const [budgets, setBudgets, loadingBudgets] = useFirebaseData(user, 'budgets', [
     { id: 1, categorie: 'Alimentation', montantMax: 400, mois: '2025-10' }
   ]);
   
-  const [categories, setCategories] = useLocalStorage('categories', {
+  const [categories, setCategories, loadingCategories] = useFirebaseData(user, 'categories', {
     depenses: [
       { id: 1, nom: 'Alimentation', icon: '🍕', color: '#ef4444' },
       { id: 2, nom: 'Logement', icon: '🏠', color: '#f59e0b' },
@@ -378,15 +379,15 @@ const BudgetApp = () => {
       recurrente: isRecurrente,
       note
     };
-    setTransactions(prev => [nouvelle, ...prev]);
+    setTransactions([nouvelle, ...transactions]);
     setShowAddTransaction(false);
     setSelectedTags([]);
     setIsRecurrente(false);
-  }, [setTransactions, selectedTags, isRecurrente, comptes]);
+  }, [transactions, setTransactions, selectedTags, isRecurrente, comptes]);
   
   const supprimerTransaction = useCallback((id) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
-  }, [setTransactions]);
+    setTransactions(transactions.filter(t => t.id !== id));
+  }, [transactions, setTransactions]);
   
   const ajouterCompte = useCallback(() => {
     const nom = document.getElementById('compteNom')?.value;
@@ -395,11 +396,11 @@ const BudgetApp = () => {
     
     if (!nom) return;
     
-    setComptes(prev => [...prev, { id: Date.now(), nom, type, soldeInitial, icon: selectedIcon, color: selectedColor }]);
+    setComptes([...comptes, { id: Date.now(), nom, type, soldeInitial, icon: selectedIcon, color: selectedColor }]);
     setShowAddCompte(false);
     setSelectedIcon('💳');
     setSelectedColor('#8B3DFF');
-  }, [setComptes, selectedIcon, selectedColor]);
+  }, [comptes, setComptes, selectedIcon, selectedColor]);
   
   const modifierCompte = useCallback(() => {
     const nom = document.getElementById('editCompteNom')?.value;
@@ -408,14 +409,14 @@ const BudgetApp = () => {
     
     if (!nom || !compteToEdit) return;
     
-    setComptes(prev => prev.map(c => c.id === compteToEdit.id ? { ...c, nom, type, soldeInitial, icon: selectedIcon, color: selectedColor } : c));
+    setComptes(comptes.map(c => c.id === compteToEdit.id ? { ...c, nom, type, soldeInitial, icon: selectedIcon, color: selectedColor } : c));
     setShowEditCompte(false);
     setCompteToEdit(null);
-  }, [setComptes, compteToEdit, selectedIcon, selectedColor]);
+  }, [comptes, setComptes, compteToEdit, selectedIcon, selectedColor]);
   
   const supprimerCompte = useCallback((id) => {
-    setComptes(prev => prev.filter(c => c.id !== id));
-  }, [setComptes]);
+    setComptes(comptes.filter(c => c.id !== id));
+  }, [comptes, setComptes]);
   
   const ajouterObjectif = useCallback(() => {
     const nom = document.getElementById('objNom')?.value;
@@ -425,9 +426,9 @@ const BudgetApp = () => {
     
     if (!nom || montantCible === 0) return;
     
-    setObjectifs(prev => [...prev, { id: Date.now(), nom, montantCible, montantActuel, dateObjectif }]);
+    setObjectifs([...objectifs, { id: Date.now(), nom, montantCible, montantActuel, dateObjectif }]);
     setShowAddObjectif(false);
-  }, [setObjectifs]);
+  }, [objectifs, setObjectifs]);
   
   const modifierObjectif = useCallback(() => {
     const nom = document.getElementById('editObjNom')?.value;
@@ -437,47 +438,47 @@ const BudgetApp = () => {
     
     if (!nom || montantCible === 0 || !objectifToEdit) return;
     
-    setObjectifs(prev => prev.map(o => o.id === objectifToEdit.id ? { ...o, nom, montantCible, montantActuel, dateObjectif } : o));
+    setObjectifs(objectifs.map(o => o.id === objectifToEdit.id ? { ...o, nom, montantCible, montantActuel, dateObjectif } : o));
     setShowEditObjectif(false);
     setObjectifToEdit(null);
-  }, [setObjectifs, objectifToEdit]);
+  }, [objectifs, setObjectifs, objectifToEdit]);
   
   const supprimerObjectif = useCallback((id) => {
-    setObjectifs(prev => prev.filter(o => o.id !== id));
-  }, [setObjectifs]);
+    setObjectifs(objectifs.filter(o => o.id !== id));
+  }, [objectifs, setObjectifs]);
   
   const ajouterCategorie = useCallback(() => {
     const nom = document.getElementById('catNom')?.value;
     if (!nom) return;
     
-    setCategories(prev => ({
-      ...prev,
-      [categorieType]: [...prev[categorieType], { id: Date.now(), nom, icon: selectedIcon, color: selectedColor }]
-    }));
+    setCategories({
+      ...categories,
+      [categorieType]: [...categories[categorieType], { id: Date.now(), nom, icon: selectedIcon, color: selectedColor }]
+    });
     setShowAddCategorie(false);
     setSelectedIcon('🍕');
     setSelectedColor('#8B3DFF');
-  }, [setCategories, categorieType, selectedIcon, selectedColor]);
+  }, [categories, setCategories, categorieType, selectedIcon, selectedColor]);
   
   const modifierCategorie = useCallback(() => {
     const nom = document.getElementById('editCatNom')?.value;
     if (!nom || !categorieToEdit) return;
     
     const type = categorieToEdit.type;
-    setCategories(prev => ({
-      ...prev,
-      [type]: prev[type].map(c => c.id === categorieToEdit.id ? { ...c, nom, icon: selectedIcon, color: selectedColor } : c)
-    }));
+    setCategories({
+      ...categories,
+      [type]: categories[type].map(c => c.id === categorieToEdit.id ? { ...c, nom, icon: selectedIcon, color: selectedColor } : c)
+    });
     setShowEditCategorie(false);
     setCategorieToEdit(null);
-  }, [setCategories, categorieToEdit, selectedIcon, selectedColor]);
+  }, [categories, setCategories, categorieToEdit, selectedIcon, selectedColor]);
   
   const supprimerCategorie = useCallback((id, type) => {
-    setCategories(prev => ({
-      ...prev,
-      [type]: prev[type].filter(c => c.id !== id)
-    }));
-  }, [setCategories]);
+    setCategories({
+      ...categories,
+      [type]: categories[type].filter(c => c.id !== id)
+    });
+  }, [categories, setCategories]);
   
   const comptesAvecSoldes = useMemo(() => {
     return comptes.map(compte => {
@@ -513,6 +514,18 @@ const BudgetApp = () => {
   const textClass = darkMode ? 'text-white' : 'text-gray-900';
   const mutedClass = darkMode ? 'text-gray-400' : 'text-gray-500';
   const inputClass = `w-full rounded-2xl px-4 py-3 outline-none transition-all ${darkMode ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-purple-500' : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-purple-500'} border-2`;
+
+  // Afficher le loader si les données sont en cours de chargement
+  if (loadingComptes || loadingTransactions || loadingObjectifs || loadingBudgets || loadingCategories) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Chargement de vos données...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className={`flex h-screen ${bgClass}`}>
