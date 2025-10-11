@@ -140,6 +140,27 @@ const BudgetApp = () => {
       setSidebarOpen(window.innerWidth > 768);
     }
   }, []);
+
+  // Ouvrir le modal d'édition de compte après avoir défini compteToEdit
+  useEffect(() => {
+    if (compteToEdit) {
+      setShowEditCompte(true);
+    }
+  }, [compteToEdit]);
+
+  // Ouvrir le modal d'édition d'objectif après avoir défini objectifToEdit
+  useEffect(() => {
+    if (objectifToEdit) {
+      setShowEditObjectif(true);
+    }
+  }, [objectifToEdit]);
+
+  // Ouvrir le modal d'édition de catégorie après avoir défini categorieToEdit
+  useEffect(() => {
+    if (categorieToEdit) {
+      setShowEditCategorie(true);
+    }
+  }, [categorieToEdit]);
   
   const [typesComptes] = useState([
     { value: 'courant', label: 'Compte courant', icon: '💳' },
@@ -795,7 +816,7 @@ const BudgetApp = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => { setCompteToEdit(compte); setSelectedIcon(compte.icon || '💳'); setSelectedColor(compte.color || '#8B3DFF'); setShowEditCompte(true); }} className={`${mutedClass} hover:text-blue-500 transition-colors p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl`}>
+                      <button onClick={() => { setCompteToEdit(compte); setSelectedIcon(compte.icon || '💳'); setSelectedColor(compte.color || '#8B3DFF'); }} className={`${mutedClass} hover:text-blue-500 transition-colors p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl`}>
                         <Edit className="w-4 h-4" />
                       </button>
                       <button onClick={() => supprimerCompte(compte.id)} className={`${mutedClass} hover:text-rose-500 transition-colors p-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl`}>
@@ -837,7 +858,7 @@ const BudgetApp = () => {
                         </div>
                       </div>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setObjectifToEdit(obj); setShowEditObjectif(true); }} className={`${mutedClass} hover:text-blue-500 transition-colors p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl`}>
+                        <button onClick={() => { setObjectifToEdit(obj); }} className={`${mutedClass} hover:text-blue-500 transition-colors p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl`}>
                           <Edit className="w-4 h-4" />
                         </button>
                         <button onClick={() => supprimerObjectif(obj.id)} className={`${mutedClass} hover:text-rose-500 transition-colors p-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl`}>
@@ -890,7 +911,7 @@ const BudgetApp = () => {
                       <MinimalIcon icon={cat.icon} color={cat.color} />
                       <span className={`flex-1 font-medium ${textClass}`}>{cat.nom}</span>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setCategorieToEdit({ ...cat, type: 'depenses' }); setSelectedIcon(cat.icon); setSelectedColor(cat.color); setShowEditCategorie(true); }} className={`${mutedClass} hover:text-blue-500 transition-colors p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl`}>
+                        <button onClick={() => { setCategorieToEdit({ ...cat, type: 'depenses' }); setSelectedIcon(cat.icon); setSelectedColor(cat.color); }} className={`${mutedClass} hover:text-blue-500 transition-colors p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl`}>
                           <Edit className="w-4 h-4" />
                         </button>
                         <button onClick={() => supprimerCategorie(cat.id, 'depenses')} className={`${mutedClass} hover:text-rose-500 transition-colors p-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl`}>
@@ -910,7 +931,7 @@ const BudgetApp = () => {
                       <MinimalIcon icon={cat.icon} color={cat.color} />
                       <span className={`flex-1 font-medium ${textClass}`}>{cat.nom}</span>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setCategorieToEdit({ ...cat, type: 'revenus' }); setSelectedIcon(cat.icon); setSelectedColor(cat.color); setShowEditCategorie(true); }} className={`${mutedClass} hover:text-blue-500 transition-colors p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl`}>
+                        <button onClick={() => { setCategorieToEdit({ ...cat, type: 'revenus' }); setSelectedIcon(cat.icon); setSelectedColor(cat.color); }} className={`${mutedClass} hover:text-blue-500 transition-colors p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl`}>
                           <Edit className="w-4 h-4" />
                         </button>
                         <button onClick={() => supprimerCategorie(cat.id, 'revenus')} className={`${mutedClass} hover:text-rose-500 transition-colors p-2 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl`}>
@@ -1074,7 +1095,7 @@ const BudgetApp = () => {
         </div>
       </Modal>
       
-      <Modal show={showEditCompte} onClose={() => { setShowEditCompte(false); setCompteToEdit(null); }} title="Modifier le compte" darkMode={darkMode}>
+      <Modal key={compteToEdit?.id} show={showEditCompte} onClose={() => { setShowEditCompte(false); setCompteToEdit(null); }} title="Modifier le compte" darkMode={darkMode}>
         <div className="space-y-4">
           <div>
             <label className={`${mutedClass} text-sm mb-2 block font-medium`}>Nom du compte</label>
@@ -1134,7 +1155,7 @@ const BudgetApp = () => {
         </div>
       </Modal>
       
-      <Modal show={showEditObjectif} onClose={() => { setShowEditObjectif(false); setObjectifToEdit(null); }} title="Modifier l'objectif" darkMode={darkMode}>
+      <Modal key={objectifToEdit?.id} show={showEditObjectif} onClose={() => { setShowEditObjectif(false); setObjectifToEdit(null); }} title="Modifier l'objectif" darkMode={darkMode}>
         <div className="space-y-4">
           <div>
             <label className={`${mutedClass} text-sm mb-2 block font-medium`}>Nom de l'objectif</label>
@@ -1191,7 +1212,7 @@ const BudgetApp = () => {
         </div>
       </Modal>
 
-      <Modal show={showEditCategorie} onClose={() => { setShowEditCategorie(false); setCategorieToEdit(null); }} title="Modifier la catégorie" darkMode={darkMode}>
+      <Modal key={categorieToEdit?.id} show={showEditCategorie} onClose={() => { setShowEditCategorie(false); setCategorieToEdit(null); }} title="Modifier la catégorie" darkMode={darkMode}>
         <div className="space-y-4">
           <div>
             <label className={`${mutedClass} text-sm mb-2 block font-medium`}>Nom de la catégorie</label>
