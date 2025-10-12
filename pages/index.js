@@ -81,8 +81,8 @@ const TransactionItem = memo(({ transaction, categories, onDelete, darkMode }) =
 const Modal = memo(({ show, onClose, title, children, darkMode }) => {
   if (!show) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className={`w-full max-w-md rounded-3xl overflow-hidden animate-slideUp max-h-[90vh] overflow-y-auto ${darkMode ? 'bg-gray-900' : 'bg-white'} shadow-2xl`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className={`w-full max-w-md rounded-3xl overflow-hidden animate-slideUp max-h-[90vh] overflow-y-auto ${darkMode ? 'bg-gray-900' : 'bg-white'} shadow-2xl`}>
         <div className={`flex items-center justify-between p-6 border-b ${darkMode ? 'border-gray-800' : 'border-gray-100'}`}>
           <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
           <button onClick={onClose} className={`${darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-900'} transition-colors p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl`}>
